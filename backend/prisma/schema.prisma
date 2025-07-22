@@ -1,0 +1,341 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(GUEST)
+  avatar    String?
+  isVerified Boolean @default(false)
+  verificationToken String?
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
+  // OAuth fields
+  googleId  String?
+  githubId  String?
+  provider  String?  // 'local', 'google', 'github'
+  // Enhanced profile fields
+  bio       String?
+  phone     String?
+  timezone  String?
+  preferences Json?  // User preferences (notifications, theme, etc.)
+  lastLoginAt DateTime?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organizedEvents Event[] @relation("EventOrganizer")
+  invitations     Invitation[]
+  tasks           Task[] @relation("TaskAssignee")
+  createdTasks    Task[] @relation("TaskCreator")
+  chatMessages    ChatMessage[]
+  polls           Poll[]
+  pollVotes       PollVote[]
+  eventAttendees  EventAttendee[]
+  activityLogs    ActivityLog[]
+  notifications   Notification[]
+  eventTemplates  EventTemplate[]
+  checkIns        CheckIn[]
+
+  @@map("users")
+}
+
+model Event {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  startDate    DateTime
+  endDate      DateTime
+  location     String?
+  isPublic     Boolean   @default(false)
+  maxAttendees Int?
+  inviteCode   String    @unique
+  organizerId  String
+  // Enhanced event fields
+  category     String?   // 'wedding', 'conference', 'hackathon', etc.
+  tags         String?   // Comma-separated tags (SQLite limitation)
+  imageUrl     String?   // Event banner/image (legacy - single image)
+  images       Json?     // Array of image URLs (multiple images)
+  venue        Json?     // Venue details (address, coordinates, etc.)
+  agenda       Json?     // Event agenda/schedule
+  settings     Json?     // Event settings (notifications, permissions, etc.)
+  budget       Float?    // Event budget
+  actualCost   Float?    // Actual cost spent
+  status       EventStatus @default(DRAFT)
+  isTemplate   Boolean   @default(false)
+  templateId   String?   // If created from template
+  qrCode       String?   // QR code for check-in
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  organizer     User            @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  invitations   Invitation[]
+  tasks         Task[]
+  chatMessages  ChatMessage[]
+  polls         Poll[]
+  attendees     EventAttendee[]
+  notifications Notification[]
+  checkIns      CheckIn[]
+
+  @@map("events")
+}
+
+model EventAttendee {
+  id       String @id @default(cuid())
+  eventId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_attendees")
+}
+
+model Invitation {
+  id          String           @id @default(cuid())
+  eventId     String
+  email       String
+  status      InvitationStatus @default(PENDING)
+  invitedBy   String
+  invitedAt   DateTime         @default(now())
+  respondedAt DateTime?
+  rsvpData    Json?            // Store custom RSVP form responses
+
+  // Relations
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitedByUser User @relation(fields: [invitedBy], references: [id])
+
+  @@unique([eventId, email])
+  @@map("invitations")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  assigneeId  String?
+  eventId     String
+  createdById String
+  images      Json?      // Array of image URLs
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  assignee  User?  @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  @@map("tasks")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  senderId  String
+  eventId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sender User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  event  Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model Poll {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  createdById  String
+  eventId      String?
+  allowMultiple Boolean @default(false)
+  endDate      DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  createdBy User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  event     Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  options   PollOption[]
+  votes     PollVote[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  text   String
+  order  Int    @default(0)
+  pollId String
+
+  // Relations
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id       String   @id @default(cuid())
+  pollId   String
+  optionId String
+  userId   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId, optionId])
+  @@map("poll_votes")
+}
+
+// Enhanced Models for Advanced Features
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  action      ActivityType
+  description String
+  userId      String?
+  entityType  String?      // 'event', 'task', 'user', etc.
+  entityId    String?
+  metadata    Json?        // Additional data about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("activity_logs")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType
+  userId    String
+  eventId   String?
+  isRead    Boolean          @default(false)
+  sentAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model EventTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  category    String
+  template    Json     // Template structure
+  isPublic    Boolean  @default(false)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("event_templates")
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  checkedAt DateTime @default(now())
+  method    String   // 'qr', 'manual', 'auto'
+  location  Json?    // GPS coordinates if available
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("check_ins")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  ORGANIZER
+  GUEST
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  EMAIL
+  PUSH
+  SMS
+}
+
+enum ActivityType {
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_DELETED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_COMPLETED
+  MESSAGE_SENT
+  POLL_CREATED
+  POLL_VOTED
+  INVITATION_SENT
+  RSVP_RECEIVED
+}

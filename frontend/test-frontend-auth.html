@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Auth Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Frontend Authentication Test</h1>
+    
+    <div>
+        <h2>Login Test</h2>
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div>
+        <h2>Profile Test</h2>
+        <button onclick="testProfile()">Test Profile</button>
+        <div id="profileResult"></div>
+    </div>
+
+    <div>
+        <h2>Tasks Test</h2>
+        <button onclick="testTasks()">Test Tasks</button>
+        <div id="tasksResult"></div>
+    </div>
+
+    <script>
+        let token = null;
+
+        async function testLogin() {
+            try {
+                console.log('Testing login...');
+                const response = await axios.post('http://localhost:3001/api/auth/login', {
+                    email: 'organizer@example.com',
+                    password: 'TestPassword123!'
+                });
+
+                token = response.data.accessToken;
+                document.getElementById('loginResult').innerHTML = `
+                    <div style="color: green;">
+                        ✅ Login successful!<br>
+                        User: ${response.data.user.name}<br>
+                        Email: ${response.data.user.email}<br>
+                        Token: ${token ? 'Received' : 'Missing'}
+                    </div>
+                `;
+                console.log('Login response:', response.data);
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `
+                    <div style="color: red;">
+                        ❌ Login failed!<br>
+                        Error: ${error.response?.data?.message || error.message}
+                    </div>
+                `;
+                console.error('Login error:', error);
+            }
+        }
+
+        async function testProfile() {
+            if (!token) {
+                document.getElementById('profileResult').innerHTML = `
+                    <div style="color: orange;">⚠️ Please login first</div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await axios.get('http://localhost:3001/api/auth/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                document.getElementById('profileResult').innerHTML = `
+                    <div style="color: green;">
+                        ✅ Profile retrieved!<br>
+                        Name: ${response.data.user.name}<br>
+                        Email: ${response.data.user.email}
+                    </div>
+                `;
+                console.log('Profile response:', response.data);
+            } catch (error) {
+                document.getElementById('profileResult').innerHTML = `
+                    <div style="color: red;">
+                        ❌ Profile failed!<br>
+                        Error: ${error.response?.data?.message || error.message}
+                    </div>
+                `;
+                console.error('Profile error:', error);
+            }
+        }
+
+        async function testTasks() {
+            if (!token) {
+                document.getElementById('tasksResult').innerHTML = `
+                    <div style="color: orange;">⚠️ Please login first</div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await axios.get('http://localhost:3001/api/tasks', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                document.getElementById('tasksResult').innerHTML = `
+                    <div style="color: green;">
+                        ✅ Tasks retrieved!<br>
+                        Count: ${response.data.tasks.length}<br>
+                        Total: ${response.data.pagination.total}
+                    </div>
+                `;
+                console.log('Tasks response:', response.data);
+            } catch (error) {
+                document.getElementById('tasksResult').innerHTML = `
+                    <div style="color: red;">
+                        ❌ Tasks failed!<br>
+                        Error: ${error.response?.data?.message || error.message}
+                    </div>
+                `;
+                console.error('Tasks error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

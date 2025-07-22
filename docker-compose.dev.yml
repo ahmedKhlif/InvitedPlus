@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Backend API Service (Development)
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: invited-plus-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=dev-jwt-secret-key
+      - JWT_EXPIRES_IN=7d
+      - BACKEND_PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_dev_data:/app/data
+    networks:
+      - invited-plus-dev-network
+    restart: unless-stopped
+    command: npm run start:dev
+
+  # Frontend Service (Development)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: invited-plus-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+      - NEXT_PUBLIC_WS_URL=http://localhost:3001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend-dev
+    networks:
+      - invited-plus-dev-network
+    restart: unless-stopped
+    command: npm run dev
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: invited-plus-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - invited-plus-dev-network
+    restart: unless-stopped
+
+volumes:
+  backend_dev_data:
+    driver: local
+
+networks:
+  invited-plus-dev-network:
+    driver: bridge

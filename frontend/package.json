@@ -1,0 +1,53 @@
+{
+  "name": "invited-plus-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Invited+ Event Management Platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+  },
+  "keywords": [
+    "nextjs",
+    "react",
+    "event-management",
+    "task-management",
+    "real-time"
+  ],
+  "author": "Invited+ Team",
+  "license": "MIT",
+  "dependencies": {
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.1.1",
+    "@types/qrcode": "^1.5.5",
+    "axios": "^1.10.0",
+    "chart.js": "^4.5.0",
+    "clsx": "^2.1.1",
+    "next": "^15.4.1",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.60.0",
+    "socket.io-client": "^4.8.1",
+    "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.1",
+    "postcss": "^8.4.31",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.8.3"
+  }
+}

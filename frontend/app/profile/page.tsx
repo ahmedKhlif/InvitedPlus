@@ -1,0 +1,428 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { api } from '@/lib/api';
+import { profileService } from '../../lib/services/profile';
+import { useToast } from '@/lib/contexts/ToastContext';
+import { CheckCircleIcon, ExclamationTriangleIcon, CameraIcon } from '@heroicons/react/24/outline';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function ProfilePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+  });
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { showSuccess, showError } = useToast();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/auth/login');
+          return;
+        }
+
+        const response = await profileService.getProfile();
+        setUser(response.user);
+        setFormData({
+          name: response.user.name,
+          email: response.user.email,
+        });
+        setAvatarPreview(response.user.avatar ? `http://localhost:3001${response.user.avatar}` : '');
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        localStorage.removeItem('token');
+        router.push('/auth/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [router]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Error', 'Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Error', 'Image size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Convert to WebP for better performance
+      const webpFile = await profileService.convertToWebP(file);
+
+      // Upload avatar
+      const response = await profileService.uploadAvatar(webpFile);
+
+      // Update user state and preview
+      setUser(response.user);
+      setAvatarPreview(`http://localhost:3001${response.user.avatar}`);
+
+      showSuccess('Success', 'Profile picture updated successfully');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      showError('Error', 'Failed to upload profile picture');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      showError('Error', 'Name is required');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      showError('Error', 'Email is required');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await profileService.updateProfile({
+        name: formData.name,
+        email: formData.email,
+      });
+
+      setUser(response.user);
+      setEditing(false);
+      showSuccess('Success', 'Profile updated successfully');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update profile';
+      showError('Error', errorMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+      });
+    }
+    setEditing(false);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">Failed to load profile</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                ← Back to Dashboard
+              </Link>
+              <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+            </div>
+            <div className="flex space-x-3">
+              {!editing ? (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="btn-primary"
+                >
+                  Edit Profile
+                </button>
+              ) : (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="btn-primary"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="btn-outline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg">
+          {/* Profile Header */}
+          <div className="px-6 py-8 border-b border-gray-200">
+            <div className="flex items-center space-x-6">
+              {/* Avatar */}
+              <div className="relative">
+                <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden">
+                  {avatarPreview || user.avatar ? (
+                    <img
+                      src={avatarPreview || `http://localhost:3001${user.avatar}`}
+                      alt={user.name}
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-white">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                {editing && (
+                  <button
+                    onClick={handleAvatarClick}
+                    disabled={uploading}
+                    className="absolute -bottom-2 -right-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-full p-2 shadow-lg transition-colors"
+                  >
+                    {uploading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <CameraIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+              
+              {/* User Info */}
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
+                <p className="text-gray-600">{user.email}</p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    user.role === 'ORGANIZER' 
+                      ? 'bg-purple-100 text-purple-800'
+                      : user.role === 'ATTENDEE'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {user.role}
+                  </span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    user.isVerified
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {user.isVerified ? (
+                      <>
+                        <CheckCircleIcon className="h-3 w-3 mr-1" />
+                        Verified
+                      </>
+                    ) : (
+                      <>
+                        <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                        Unverified
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Profile Details */}
+          <div className="px-6 py-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Personal Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-gray-900">{user.name}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    {editing ? (
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-gray-900">{user.email}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <p className="text-gray-900">{user.role}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Account Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      User ID
+                    </label>
+                    <p className="text-gray-900 font-mono text-sm">{user.id}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Account Created
+                    </label>
+                    <p className="text-gray-900">{formatDate(user.createdAt)}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Updated
+                    </label>
+                    <p className="text-gray-900">{formatDate(user.updatedAt)}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Status
+                    </label>
+                    <p className={`font-medium ${
+                      user.isVerified ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {user.isVerified ? 'Verified' : 'Not Verified'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Quick Actions</h3>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard"
+                className="btn-outline"
+              >
+                Go to Dashboard
+              </Link>
+              <Link
+                href="/tasks"
+                className="btn-outline"
+              >
+                Manage Tasks
+              </Link>
+              <Link
+                href="/events"
+                className="btn-outline"
+              >
+                View Events
+              </Link>
+              <button
+                onClick={() => alert('Change password functionality coming soon!')}
+                className="btn-outline"
+              >
+                Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
