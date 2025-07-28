@@ -32,15 +32,15 @@ interface ActivityItem {
 interface RecentActivityProps {
   activities?: ActivityItem[];
   limit?: number;
+  showRefresh?: boolean;
 }
 
-export default function RecentActivity({ activities = [], limit = 10 }: RecentActivityProps) {
+export default function RecentActivity({ activities = [], limit = 10, showRefresh = false }: RecentActivityProps) {
   const [loading, setLoading] = useState(true);
   const [realActivities, setRealActivities] = useState<ActivityItem[]>([]);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchRecentActivity = async () => {
+  const fetchRecentActivity = async () => {
       try {
         setLoading(true);
         setError('');
@@ -50,11 +50,28 @@ export default function RecentActivity({ activities = [], limit = 10 }: RecentAc
           return;
         }
 
-        const response = await authService.getRecentActivity(limit);
+        // Use the role-based recent activity endpoint
+        try {
+          const response = await fetch(`http://localhost:3001/api/auth/recent-activity?limit=${limit}`, {
+            headers: {
+              'Authorization': `Bearer ${authService.getToken()}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (response.success) {
-          setRealActivities(response.activities);
-        } else {
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.activities) {
+              setRealActivities(data.activities);
+            } else {
+              setError('No recent activity found');
+            }
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            setError(errorData.message || 'Failed to load recent activity');
+          }
+        } catch (error) {
+          console.error('Error fetching recent activity:', error);
           setError('Failed to load recent activity');
         }
       } catch (error: any) {
@@ -65,8 +82,13 @@ export default function RecentActivity({ activities = [], limit = 10 }: RecentAc
       }
     };
 
+  useEffect(() => {
     fetchRecentActivity();
   }, [limit]);
+
+  const handleRefresh = () => {
+    fetchRecentActivity();
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -196,9 +218,20 @@ export default function RecentActivity({ activities = [], limit = 10 }: RecentAc
       <div className="px-4 py-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
-          <Link href="/activity" className="text-sm text-indigo-600 hover:text-indigo-500">
-            View all
-          </Link>
+          <div className="flex items-center space-x-2">
+            {showRefresh && (
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'Refresh'}
+              </button>
+            )}
+            <Link href="/activity" className="text-sm text-indigo-600 hover:text-indigo-500">
+              View all
+            </Link>
+          </div>
         </div>
         
         {error ? (

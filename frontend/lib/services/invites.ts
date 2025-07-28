@@ -75,5 +75,11 @@ export const invitesService = {
       email: data.email
     });
     return response.data.invite;
+  },
+
+  // Delete invite
+  async deleteInvite(inviteId: string) {
+    const response = await api.delete(`/invites/${inviteId}`);
+    return response.data;
   }
 };

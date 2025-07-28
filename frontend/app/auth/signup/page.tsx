@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/services';
-import { EyeIcon, EyeSlashIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, CheckIcon, XMarkIcon, UserIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface PasswordRequirement {
   label: string;
@@ -122,9 +125,9 @@ export default function SignupPage() {
         password: formData.password,
       });
 
-      setSuccess('Account created successfully! Redirecting to login...');
+      setSuccess('Account created successfully! Redirecting to verification page...');
       setTimeout(() => {
-        router.push('/auth/login');
+        router.push(`/auth/verify-code?email=${encodeURIComponent(formData.email)}`);
       }, 2000);
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -138,29 +141,44 @@ export default function SignupPage() {
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="form-container fade-in">
-        <div className="form-header">
-          <h2 className="text-2xl font-bold">Create your account</h2>
-          <p className="mt-2 text-blue-100">Join Event+ and start organizing amazing events</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo and Header */}
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Create your account
+          </h2>
+          <p className="mt-2 text-gray-600">Join Event+ and start organizing amazing events</p>
         </div>
 
-        <div className="form-body">
-          {/* Success Message */}
-          {success && (
-            <div className="alert alert-success slide-up">
-              <CheckIcon className="w-5 h-5 inline mr-2" />
-              {success}
-            </div>
-          )}
+        {/* Signup Card */}
+        <Card variant="elevated" className="backdrop-blur-sm">
+          <CardContent className="space-y-6">
+            {/* Success Message */}
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center space-x-3">
+                  <CheckIcon className="w-5 h-5 text-green-500" />
+                  <p className="text-green-700 text-sm font-medium">{success}</p>
+                </div>
+                <div className="mt-3 text-sm text-green-600">
+                  Check your email for a 6-digit verification code.
+                </div>
+              </div>
+            )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="alert alert-error slide-up">
-              <XMarkIcon className="w-5 h-5 inline mr-2" />
-              {error}
-            </div>
-          )}
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3 animate-in slide-in-from-top-2 duration-300">
+                <XMarkIcon className="w-5 h-5 text-red-500" />
+                <p className="text-red-700 text-sm font-medium">{error}</p>
+              </div>
+            )}
 
           {/* OAuth Signup Buttons */}
           <div className="space-y-3">
@@ -333,27 +351,26 @@ export default function SignupPage() {
             </div>
 
             {/* Submit Button */}
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={loading}
               disabled={loading || !isFormValid()}
-              className="btn btn-primary btn-lg w-full"
+              className="h-12"
             >
-              {loading ? (
-                <>
-                  <span className="loading-spinner mr-2"></span>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </Button>
           </form>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="form-footer text-center">
+        {/* Footer */}
+        <div className="text-center">
           <p className="text-sm text-gray-600">
             Already have an account?{' '}
-            <Link href="/auth/login" className="font-semibold text-blue-600 hover:text-blue-500">
+            <Link href="/auth/login" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
               Sign in here
             </Link>
           </p>

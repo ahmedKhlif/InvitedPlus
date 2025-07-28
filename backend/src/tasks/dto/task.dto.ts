@@ -155,3 +155,24 @@ export class TaskQueryDto {
   @IsOptional()
   limit?: number;
 }
+
+export class CompleteTaskDto {
+  @ApiPropertyOptional({
+    description: 'Completion note/comment',
+    example: 'Task completed successfully. All requirements met and venue confirmed.'
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  completionNote?: string;
+
+  @ApiPropertyOptional({
+    description: 'Array of completion proof image URLs',
+    type: [String],
+    example: ['/uploads/tasks/completion-123.webp', '/uploads/tasks/completion-456.webp']
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  completionImages?: string[];
+}

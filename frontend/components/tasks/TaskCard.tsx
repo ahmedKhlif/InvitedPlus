@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  CalendarIcon, 
-  UserIcon, 
+import {
+  CalendarIcon,
+  UserIcon,
   ExclamationTriangleIcon,
   ClockIcon,
   ChatBubbleLeftIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
+import CompleteTaskModal from './CompleteTaskModal';
 
 interface Task {
   id: string;
@@ -28,6 +30,14 @@ interface Task {
     name: string;
     email: string;
   };
+  completedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  completedAt?: string;
+  completionNote?: string;
+  completionImages?: string[];
   event: {
     id: string;
     title: string;
@@ -41,11 +51,13 @@ interface TaskCardProps {
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onStatusChange?: (taskId: string, newStatus: string) => void;
+  onTaskCompleted?: () => void;
   isDragging?: boolean;
 }
 
-export default function TaskCard({ task, onEdit, onDelete, onStatusChange, isDragging }: TaskCardProps) {
+export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onTaskCompleted, isDragging }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -168,15 +180,31 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange, isDra
           <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
         </div>
         
-        {/* Quick Status Change */}
-        {onStatusChange && task.status !== 'COMPLETED' && (
-          <button
-            onClick={() => onStatusChange(task.id, 'COMPLETED')}
-            className="text-xs text-green-600 hover:text-green-800 font-medium"
-          >
-            Mark Complete
-          </button>
-        )}
+        {/* Task Actions */}
+        <div className="flex items-center space-x-2">
+          {/* Complete Task Button */}
+          {task.status !== 'COMPLETED' && (
+            <button
+              onClick={() => setShowCompleteModal(true)}
+              className="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-200 rounded hover:bg-green-200 transition-colors"
+              title="Complete task with details"
+            >
+              <CheckIcon className="h-3 w-3 mr-1" />
+              Complete
+            </button>
+          )}
+
+          {/* Quick Complete (fallback) */}
+          {onStatusChange && task.status !== 'COMPLETED' && !showCompleteModal && (
+            <button
+              onClick={() => onStatusChange(task.id, 'COMPLETED')}
+              className="text-xs text-green-600 hover:text-green-800 font-medium"
+              title="Quick complete without details"
+            >
+              Quick Complete
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Progress Indicator for IN_PROGRESS tasks */}
@@ -187,6 +215,51 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange, isDra
           </div>
         </div>
       )}
+
+      {/* Completion Details */}
+      {task.status === 'COMPLETED' && (task.completedBy || task.completionNote || task.completionImages?.length) && (
+        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center mb-2">
+            <CheckIcon className="h-4 w-4 text-green-600 mr-2" />
+            <span className="text-sm font-medium text-green-800">
+              Completed by {task.completedBy?.name || 'Unknown'}
+            </span>
+            {task.completedAt && (
+              <span className="text-xs text-green-600 ml-2">
+                on {new Date(task.completedAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
+          {task.completionNote && (
+            <p className="text-sm text-green-700 mb-2">{task.completionNote}</p>
+          )}
+
+          {task.completionImages && task.completionImages.length > 0 && (
+            <div className="flex space-x-2 overflow-x-auto">
+              {task.completionImages.map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`Completion proof ${index + 1}`}
+                  className="h-16 w-16 object-cover rounded border border-green-300 flex-shrink-0"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Complete Task Modal */}
+      <CompleteTaskModal
+        isOpen={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        task={task}
+        onTaskCompleted={() => {
+          setShowCompleteModal(false);
+          onTaskCompleted?.();
+        }}
+      />
     </div>
   );
 }

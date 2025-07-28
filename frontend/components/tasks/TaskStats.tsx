@@ -30,16 +30,43 @@ interface TaskStats {
 interface TaskStatsProps {
   eventId?: string;
   className?: string;
+  refreshTrigger?: number; // Add this to force refresh
+  onRefresh?: () => void; // Callback to manually refresh
 }
 
-export default function TaskStats({ eventId, className = '' }: TaskStatsProps) {
+export default function TaskStats({ eventId, className = '', refreshTrigger, onRefresh }: TaskStatsProps) {
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchStats();
-  }, [eventId]);
+  }, [eventId, refreshTrigger]); // Add refreshTrigger to dependencies
+
+  // Listen for global task updates via localStorage
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'taskStatsRefresh') {
+        fetchStats();
+      }
+    };
+
+    // Also check for changes via polling (for same-tab updates)
+    const checkForUpdates = () => {
+      const lastUpdate = localStorage.getItem('taskStatsRefresh');
+      if (lastUpdate && parseInt(lastUpdate) > Date.now() - 1000) {
+        fetchStats();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(checkForUpdates, 2000); // Check every 2 seconds
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -64,13 +91,13 @@ export default function TaskStats({ eventId, className = '' }: TaskStatsProps) {
           const status = task.status as keyof typeof calculatedStats.byStatus;
           const priority = task.priority as keyof typeof calculatedStats.byPriority;
 
-          if (status in calculatedStats.byStatus) {
-            calculatedStats.byStatus[status] = (calculatedStats.byStatus[status] || 0) + 1;
-          }
-          if (priority in calculatedStats.byPriority) {
-            calculatedStats.byPriority[priority] = (calculatedStats.byPriority[priority] || 0) + 1;
-          }
-          
+          // Count by status
+          calculatedStats.byStatus[status] = (calculatedStats.byStatus[status] || 0) + 1;
+
+          // Count by priority
+          calculatedStats.byPriority[priority] = (calculatedStats.byPriority[priority] || 0) + 1;
+
+          // Count overdue tasks
           if (task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED') {
             calculatedStats.overdue++;
           }
@@ -145,7 +172,15 @@ export default function TaskStats({ eventId, className = '' }: TaskStatsProps) {
   return (
     <div className={`bg-white rounded-lg shadow ${className}`}>
       <div className="p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-6">Task Statistics</h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-medium text-gray-900">Task Statistics</h3>
+          <button
+            onClick={fetchStats}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Refresh
+          </button>
+        </div>
         
         {/* Main Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

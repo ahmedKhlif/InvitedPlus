@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { eventsService } from '@/lib/services';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/lib/contexts/ToastContext';
+import ImageUpload from '@/components/common/ImageUpload';
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -16,6 +17,9 @@ export default function CreateEventPage() {
     maxAttendees: '',
     isPublic: true,
     requiresApproval: false,
+    category: '',
+    tags: '',
+    images: [] as string[],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +55,13 @@ export default function CreateEventPage() {
     }));
   };
 
+  const handleImagesChange = (images: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -77,7 +88,7 @@ export default function CreateEventPage() {
       const response = await eventsService.createEvent(eventData);
 
       // Show success notification
-      showSuccess('Event Created!', `"${response.title}" has been created successfully.`);
+      showSuccess('Event Created!', `"${response.event?.title || formData.title}" has been created successfully.`);
 
       // Redirect to events list to avoid timing issues
       router.push('/events');
@@ -211,6 +222,53 @@ export default function CreateEventPage() {
                 />
               </div>
 
+              {/* Category and Tags */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select a category</option>
+                    <option value="conference">Conference</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="seminar">Seminar</option>
+                    <option value="meetup">Meetup</option>
+                    <option value="networking">Networking</option>
+                    <option value="social">Social</option>
+                    <option value="party">Party</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="birthday">Birthday</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="fundraiser">Fundraiser</option>
+                    <option value="sports">Sports</option>
+                    <option value="cultural">Cultural</option>
+                    <option value="educational">Educational</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+                    Tags
+                  </label>
+                  <input
+                    type="text"
+                    id="tags"
+                    name="tags"
+                    value={formData.tags}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Comma-separated tags (e.g., tech, networking, fun)"
+                  />
+                </div>
+              </div>
+
               {/* Settings */}
               <div className="space-y-4">
                 <div className="flex items-center">
@@ -239,6 +297,23 @@ export default function CreateEventPage() {
                     Require approval for attendees
                   </label>
                 </div>
+              </div>
+
+              {/* Event Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Images
+                </label>
+                <ImageUpload
+                  images={formData.images}
+                  onImagesChange={handleImagesChange}
+                  maxImages={10}
+                  type="events"
+                  disabled={loading}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Add images to showcase your event and attract attendees
+                </p>
               </div>
 
               {/* Submit Button */}

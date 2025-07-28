@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import QRCodeGenerator from '@/components/events/QRCodeGenerator';
 import { usePermissions, PermissionGate } from '@/lib/hooks/usePermissions';
-import { CalendarIcon, UsersIcon, MapPinIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, UsersIcon, MapPinIcon, ClipboardDocumentListIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ImageGallery from '@/components/common/ImageGallery';
+import { authService } from '@/lib/services';
 
 interface Event {
   id: string;
@@ -19,6 +20,8 @@ interface Event {
   maxAttendees?: number;
   inviteCode: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+  category?: string;
+  tags?: string;
   imageUrl?: string;
   images?: string[];
   organizer: {
@@ -42,11 +45,13 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const router = useRouter();
   const params = useParams();
 
   useEffect(() => {
-    const fetchEvent = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -54,6 +59,11 @@ export default function EventDetailPage() {
           return;
         }
 
+        // Fetch current user
+        const user = authService.getCurrentUser();
+        setCurrentUser(user);
+
+        // Fetch event
         const response = await api.get(`/events/${params.id}`);
         setEvent(response.data);
       } catch (error: any) {
@@ -65,7 +75,7 @@ export default function EventDetailPage() {
     };
 
     if (params.id) {
-      fetchEvent();
+      fetchData();
     }
   }, [params.id, router]);
 
@@ -78,6 +88,33 @@ export default function EventDetailPage() {
       minute: '2-digit',
     });
   };
+
+  const handleDeleteEvent = async () => {
+    if (!event || !currentUser) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${event.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      await api.delete(`/events/${event.id}`);
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Failed to delete event:', error);
+      alert('Failed to delete event. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Check if current user is the organizer or admin
+  const canEditEvent = currentUser && event && (
+    currentUser.id === event.organizer.id ||
+    currentUser.role === 'ADMIN'
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -199,6 +236,34 @@ export default function EventDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Category and Tags */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {event.category && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">Category</h3>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {event.category}
+                        </span>
+                      </div>
+                    )}
+
+                    {event.tags && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
+                        <div className="flex flex-wrap gap-1">
+                          {event.tags.split(',').map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                            >
+                              {tag.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   <div>
                     <h3 className="text-sm font-medium text-gray-700 mb-2">Organizer</h3>
@@ -259,10 +324,20 @@ export default function EventDetailPage() {
                   <div className="space-y-4">
                     {event.attendees.map((attendee) => (
                       <div key={attendee.id} className="flex items-center">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-sm font-medium text-white">
-                            {attendee.user.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="relative mr-3">
+                          {attendee.user.avatar ? (
+                            <img
+                              src={`http://localhost:3001${attendee.user.avatar}`}
+                              alt={attendee.user.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                {attendee.user.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <p className="text-gray-900 font-medium">{attendee.user.name}</p>
@@ -284,6 +359,31 @@ export default function EventDetailPage() {
                 <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
               </div>
               <div className="px-6 py-6 space-y-3">
+                {/* Edit and Delete buttons for organizers/admins */}
+                {canEditEvent && (
+                  <>
+                    <Link
+                      href={`/events/${event.id}/edit`}
+                      className="block w-full bg-green-600 text-white text-center py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <PencilIcon className="h-4 w-4" />
+                        <span>Edit Event</span>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={handleDeleteEvent}
+                      disabled={deleteLoading}
+                      className="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <TrashIcon className="h-4 w-4" />
+                        <span>{deleteLoading ? 'Deleting...' : 'Delete Event'}</span>
+                      </div>
+                    </button>
+                  </>
+                )}
+
                 <PermissionGate resource="tasks" action="create">
                   <Link
                     href={`/tasks?eventId=${event.id}`}
@@ -305,6 +405,12 @@ export default function EventDetailPage() {
                   className="block w-full btn-outline text-center"
                 >
                   Event Chat
+                </Link>
+                <Link
+                  href={`/events/${event.id}/whiteboard`}
+                  className="block w-full btn-outline text-center"
+                >
+                  Whiteboard
                 </Link>
                 <PermissionGate resource="events" action="create">
                   <Link

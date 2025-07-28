@@ -1,6 +1,7 @@
 'use client';
 
 import ChartWrapper from './ChartWrapper';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 
 interface AnalyticsData {
   userGrowth: {
@@ -137,9 +138,12 @@ export default function AnalyticsCharts({ analytics }: AnalyticsChartsProps) {
   return (
     <div className="space-y-8">
       {/* User Growth Chart */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">User Growth Over Time</h3>
+      <Card variant="elevated" className="backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle>User Growth Over Time</CardTitle>
+          <CardDescription>New user registrations and growth trends</CardDescription>
+        </CardHeader>
+        <CardContent>
           <ChartWrapper
             type="line"
             data={userGrowthData}
@@ -147,15 +151,18 @@ export default function AnalyticsCharts({ analytics }: AnalyticsChartsProps) {
             height={300}
             className="w-full"
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Event Status Chart */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Event Status Distribution</h3>
+        <Card variant="elevated" className="backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Event Status Distribution</CardTitle>
+            <CardDescription>Active vs completed events breakdown</CardDescription>
+          </CardHeader>
+          <CardContent>
             <ChartWrapper
               type="doughnut"
               data={eventStatusData}
@@ -163,13 +170,16 @@ export default function AnalyticsCharts({ analytics }: AnalyticsChartsProps) {
               height={250}
               className="w-full"
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Task Progress Chart */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Task Progress</h3>
+        <Card variant="elevated" className="backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Task Progress</CardTitle>
+            <CardDescription>Task completion and progress tracking</CardDescription>
+          </CardHeader>
+          <CardContent>
             <ChartWrapper
               type="bar"
               data={taskProgressData}
@@ -177,14 +187,17 @@ export default function AnalyticsCharts({ analytics }: AnalyticsChartsProps) {
               height={250}
               className="w-full"
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Engagement Chart */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Platform Engagement</h3>
+      <Card variant="elevated" className="backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle>Platform Engagement</CardTitle>
+          <CardDescription>User interaction and communication metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
           <ChartWrapper
             type="bar"
             data={engagementData}
@@ -195,8 +208,8 @@ export default function AnalyticsCharts({ analytics }: AnalyticsChartsProps) {
             height={200}
             className="w-full"
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

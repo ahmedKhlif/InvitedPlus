@@ -82,12 +82,34 @@ export class UploadController {
       this.uploadService.uploadSingleImage(file, type as 'events' | 'tasks'),
       this.uploadService.createThumbnail(file, type),
     ]);
-    
+
     return {
       success: true,
       message: 'Image and thumbnail uploaded successfully',
       imageUrl,
       thumbnailUrl,
+    };
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Upload any file (for chat, etc.)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const fileUrl = await this.uploadService.uploadChatFile(file);
+
+    return {
+      success: true,
+      message: 'File uploaded successfully',
+      url: fileUrl,
+      filename: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
     };
   }
 }

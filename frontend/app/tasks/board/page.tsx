@@ -5,15 +5,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
+import CompleteTaskModal from '@/components/tasks/CompleteTaskModal';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { authService } from '@/lib/services';
-import { 
-  PlusIcon, 
+import {
+  PlusIcon,
   ArrowLeftIcon,
   ClipboardDocumentListIcon,
   CalendarIcon,
   UserIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
 interface Task {
@@ -53,6 +55,8 @@ export default function TaskBoardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -91,9 +95,13 @@ export default function TaskBoardPage() {
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       const response = await api.patch(`/tasks/${taskId}`, { status: newStatus });
-      setTasks(tasks.map(task => 
+      setTasks(tasks.map(task =>
         task.id === taskId ? { ...task, status: response.data.status } : task
       ));
+
+      // Trigger global task statistics refresh
+      localStorage.setItem('taskStatsRefresh', Date.now().toString());
+
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update task status');
     }
@@ -104,49 +112,136 @@ export default function TaskBoardPage() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, columnStatus: string) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+
+    if (draggedTask) {
+      const task = tasks.find(t => t.id === draggedTask);
+      if (task && canMoveTaskToStatus(task, columnStatus)) {
+        e.dataTransfer.dropEffect = 'move';
+      } else {
+        e.dataTransfer.dropEffect = 'none';
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent, newStatus: string) => {
     e.preventDefault();
     if (draggedTask) {
       const task = tasks.find(t => t.id === draggedTask);
-      if (task && task.status !== newStatus && canUpdateTask(task)) {
+      if (task && task.status !== newStatus && canMoveTaskToStatus(task, newStatus)) {
         updateTaskStatus(draggedTask, newStatus);
+      } else if (task && !canMoveTaskToStatus(task, newStatus)) {
+        // Show error message for invalid moves
+        setError(`You cannot move this task to ${newStatus.replace('_', ' ').toLowerCase()}`);
+        setTimeout(() => setError(''), 3000);
       }
       setDraggedTask(null);
     }
   };
 
-  // Check if user can update a specific task
-  const canUpdateTask = (task: Task) => {
+  // Check if user can update a specific task status
+  const canUpdateTask = (task: Task, newStatus?: string) => {
     if (!currentUser) return false;
 
     if (currentUser.role === 'ADMIN') return true;
+
     if (currentUser.role === 'ORGANIZER') {
       // Organizers can update tasks in their events or their own tasks
       return task.assignee?.id === currentUser.id || task.createdBy.id === currentUser.id;
     }
+
     if (currentUser.role === 'GUEST') {
-      // Guests can only update their own assigned tasks (status only)
-      return task.assignee?.id === currentUser.id;
+      // Guests can only update their own assigned tasks
+      if (task.assignee?.id !== currentUser.id) return false;
+
+      // If newStatus is provided, check workflow rules
+      if (newStatus) {
+        return canMoveTaskToStatus(task, newStatus);
+      }
+
+      return true;
     }
     return false;
   };
 
+  // Check if user can move task to specific status (workflow rules)
+  const canMoveTaskToStatus = (task: Task, newStatus: string) => {
+    if (!currentUser) return false;
+
+    // Admin can do anything
+    if (currentUser.role === 'ADMIN') return true;
+
+    // Only task creators and event organizers can cancel tasks
+    if (newStatus === 'CANCELLED') {
+      return task.createdBy.id === currentUser.id || currentUser.role === 'ORGANIZER';
+    }
+
+    // For assignees (GUEST role), enforce forward-only workflow
+    if (currentUser.role === 'GUEST' && task.assignee?.id === currentUser.id) {
+      const statusOrder = ['TODO', 'IN_PROGRESS', 'COMPLETED'];
+      const currentIndex = statusOrder.indexOf(task.status);
+      const newIndex = statusOrder.indexOf(newStatus);
+
+      // Can only move forward in the workflow
+      return newIndex > currentIndex;
+    }
+
+    // Organizers can move tasks freely if they're the creator or assignee
+    if (currentUser.role === 'ORGANIZER') {
+      return task.assignee?.id === currentUser.id || task.createdBy.id === currentUser.id;
+    }
+
+    return false;
+  };
+
   // Check if user can edit task details (not just status)
-  const canEditTask = (task: Task) => {
+  const canEditTaskDetails = (task: Task) => {
     if (!currentUser) return false;
 
     if (currentUser.role === 'ADMIN') return true;
     if (currentUser.role === 'ORGANIZER') {
-      // Organizers can edit tasks they created or in their events
+      // Organizers can edit tasks they created
       return task.createdBy.id === currentUser.id;
     }
     // Guests cannot edit task details
     return false;
+  };
+
+  // Check if user can complete this task
+  const canCompleteTask = (task: Task) => {
+    if (!currentUser) return false;
+
+    // Task must not be already completed
+    if (task.status === 'COMPLETED') return false;
+
+    // Check if user is assignee, creator, or admin
+    const isAssignee = task.assignee?.id === currentUser.id;
+    const isCreator = task.createdBy.id === currentUser.id;
+
+    return isAssignee || isCreator || currentUser.role === 'ADMIN';
+  };
+
+  const handleCompleteTask = (task: Task) => {
+    setSelectedTask(task);
+    setShowCompleteModal(true);
+  };
+
+  const handleTaskCompleted = async () => {
+    try {
+      // Refresh tasks to show updated status
+      await fetchTasks();
+      setShowCompleteModal(false);
+      setSelectedTask(null);
+
+
+
+      // Clear any errors
+      setError('');
+    } catch (err) {
+      console.error('Failed to refresh tasks after completion:', err);
+      setError('Failed to refresh tasks. Please reload the page.');
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -172,6 +267,16 @@ export default function TaskBoardPage() {
 
   const getTasksByStatus = (status: string) => {
     return tasks.filter(task => task.status === status);
+  };
+
+  // Get allowed status transitions for a task
+  const getAllowedTransitions = (task: Task) => {
+    if (!currentUser) return [];
+
+    const allStatuses = ['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+    return allStatuses.filter(status =>
+      status !== task.status && canMoveTaskToStatus(task, status)
+    );
   };
 
   if (loading) {
@@ -229,7 +334,7 @@ export default function TaskBoardPage() {
             <div
               key={column.key}
               className={`rounded-lg border-2 border-dashed ${column.color} min-h-[400px] lg:min-h-[600px]`}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, column.key)}
               onDrop={(e) => handleDrop(e, column.key)}
             >
               <div className="p-4">
@@ -291,10 +396,22 @@ export default function TaskBoardPage() {
                       
                       <div className="flex justify-between items-center mt-3">
                         <div className="flex space-x-2">
-                          {canEditTask(task) && (
+                          {canCompleteTask(task) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCompleteTask(task);
+                              }}
+                              className="text-green-600 hover:text-green-800 text-xs font-medium flex items-center"
+                            >
+                              <CheckCircleIcon className="h-3 w-3 mr-1" />
+                              Complete
+                            </button>
+                          )}
+                          {canEditTaskDetails(task) && (
                             <button
                               onClick={() => router.push(`/tasks/${task.id}/edit`)}
-                              className="text-green-600 hover:text-green-800 text-xs font-medium"
+                              className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                             >
                               Edit
                             </button>
@@ -327,6 +444,16 @@ export default function TaskBoardPage() {
         onClose={() => setShowCreateModal(false)}
         onTaskCreated={fetchTasks}
       />
+
+      {/* Complete Task Modal */}
+      {selectedTask && (
+        <CompleteTaskModal
+          isOpen={showCompleteModal}
+          onClose={() => setShowCompleteModal(false)}
+          task={selectedTask}
+          onTaskCompleted={handleTaskCompleted}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { profileService } from '../../lib/services/profile';
 import { useToast } from '@/lib/contexts/ToastContext';
 import { CheckCircleIcon, ExclamationTriangleIcon, CameraIcon } from '@heroicons/react/24/outline';
+import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
 
 interface User {
   id: string;
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   });
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { showSuccess, showError } = useToast();
@@ -222,6 +224,49 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {/* Email Verification Status Banner */}
+      {!user.isVerified ? (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">
+                    Email Verification Required
+                  </p>
+                  <p className="text-sm text-yellow-700">
+                    Please verify your email address to access all platform features and receive important notifications.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/auth/verify-code?email=${encodeURIComponent(user.email)}`}
+                className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Verify Email
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-green-50 border-l-4 border-green-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center">
+              <CheckCircleIcon className="h-5 w-5 text-green-400 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  ✅ Email Verified - Your account is fully activated!
+                </p>
+                <p className="text-sm text-green-700">
+                  You can now access all platform features and will receive important notifications.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
@@ -380,11 +425,43 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email Status
                     </label>
-                    <p className={`font-medium ${
-                      user.isVerified ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {user.isVerified ? 'Verified' : 'Not Verified'}
-                    </p>
+                    <div className="flex items-center space-x-3">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        user.isVerified
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-red-100 text-red-800 border border-red-200'
+                      }`}>
+                        {user.isVerified ? (
+                          <>
+                            <CheckCircleIcon className="h-4 w-4 mr-2" />
+                            Email Verified
+                          </>
+                        ) : (
+                          <>
+                            <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                            Email Not Verified
+                          </>
+                        )}
+                      </span>
+                      {!user.isVerified && (
+                        <Link
+                          href={`/auth/verify-code?email=${encodeURIComponent(user.email)}`}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium underline"
+                        >
+                          Verify Now
+                        </Link>
+                      )}
+                    </div>
+                    {user.isVerified && (
+                      <p className="text-sm text-green-600 mt-1">
+                        ✅ Your email has been verified and your account is fully activated.
+                      </p>
+                    )}
+                    {!user.isVerified && (
+                      <p className="text-sm text-red-600 mt-1">
+                        ⚠️ Please verify your email to access all platform features.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -414,7 +491,7 @@ export default function ProfilePage() {
                 View Events
               </Link>
               <button
-                onClick={() => alert('Change password functionality coming soon!')}
+                onClick={() => setShowChangePasswordModal(true)}
                 className="btn-outline"
               >
                 Change Password
@@ -423,6 +500,16 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => {
+          showSuccess('Password changed successfully!');
+          setShowChangePasswordModal(false);
+        }}
+      />
     </div>
   );
 }

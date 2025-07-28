@@ -61,8 +61,23 @@ export default function TasksPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
   
   const router = useRouter();
+  const { user } = usePermissions();
+
+  // Check if user can edit task details (not just status)
+  const canEditTaskDetails = (task: Task) => {
+    if (!user) return false;
+
+    if (user.role === 'ADMIN') return true;
+    if (user.role === 'ORGANIZER') {
+      // Organizers can edit tasks they created
+      return task.createdBy.id === user.id;
+    }
+    // Guests cannot edit task details, only status
+    return false;
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -175,7 +190,7 @@ export default function TasksPage() {
 
       {/* Task Statistics */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <TaskStats className="mb-6" />
+        <TaskStats className="mb-6" refreshTrigger={statsRefreshTrigger} />
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -312,20 +327,16 @@ export default function TasksPage() {
                         onClick={() => router.push(`/tasks/${task.id}`)}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >
-                        View
+                        {task.status === 'COMPLETED' ? 'View Completion' : 'View Details'}
                       </button>
-                      <PermissionGate
-                        resource="tasks"
-                        action="update"
-                        resourceData={task}
-                      >
+                      {canEditTaskDetails(task) && (
                         <button
                           onClick={() => router.push(`/tasks/${task.id}/edit`)}
                           className="text-gray-600 hover:text-gray-800 text-sm font-medium"
                         >
                           Edit
                         </button>
-                      </PermissionGate>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -339,7 +350,10 @@ export default function TasksPage() {
       <CreateTaskModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onTaskCreated={fetchTasks}
+        onTaskCreated={() => {
+          fetchTasks();
+          setStatsRefreshTrigger(prev => prev + 1); // Refresh stats
+        }}
       />
     </div>
   );

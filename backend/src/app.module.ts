@@ -13,7 +13,12 @@ import { TasksModule } from './tasks/tasks.module';
 import { ChatModule } from './chat/chat.module';
 import { PollsModule } from './polls/polls.module';
 import { AdminModule } from './admin/admin.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { UploadModule } from './common/upload/upload.module';
+import { UsersModule } from './users/users.module';
+import { FriendsModule } from './friends/friends.module';
+import { PrivateChatModule } from './private-chat/private-chat.module';
+import { WhiteboardModule } from './whiteboard/whiteboard.module';
 
 @Module({
   imports: [
@@ -46,7 +51,12 @@ import { UploadModule } from './common/upload/upload.module';
     ChatModule,
     PollsModule,
     AdminModule,
+    NotificationsModule,
     UploadModule,
+    UsersModule,
+    FriendsModule,
+    PrivateChatModule,
+    WhiteboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

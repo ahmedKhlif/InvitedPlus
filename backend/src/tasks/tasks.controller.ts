@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './dto/task.dto';
+import { CreateTaskDto, UpdateTaskDto, TaskQueryDto, CompleteTaskDto } from './dto/task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -81,6 +81,20 @@ export class TasksController {
     @CurrentUser() user: any,
   ) {
     return this.tasksService.update(id, updateTaskDto, user.id);
+  }
+
+  @Post(':id/complete')
+  @ApiOperation({ summary: 'Complete a task with optional completion details' })
+  @ApiResponse({ status: 200, description: 'Task completed successfully' })
+  @ApiResponse({ status: 400, description: 'Task already completed' })
+  @ApiResponse({ status: 403, description: 'Forbidden - No permission to complete this task' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  completeTask(
+    @Param('id') id: string,
+    @Body() completeTaskDto: CompleteTaskDto,
+    @CurrentUser() user: any
+  ) {
+    return this.tasksService.completeTask(id, completeTaskDto, user.id);
   }
 
   @Delete(':id')

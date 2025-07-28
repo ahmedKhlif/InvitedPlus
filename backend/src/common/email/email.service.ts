@@ -35,6 +35,51 @@ export class EmailService {
     this.logger.log('Email service initialized successfully');
   }
 
+  async testEmailConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.transporter) {
+      return {
+        success: false,
+        message: 'Email service not configured. Please check SMTP settings.'
+      };
+    }
+
+    try {
+      await this.transporter.verify();
+      return {
+        success: true,
+        message: 'Email service is working correctly!'
+      };
+    } catch (error) {
+      this.logger.error('Email service test failed:', error);
+      return {
+        success: false,
+        message: `Email service test failed: ${error.message}`
+      };
+    }
+  }
+
+  async sendTestEmail(email: string): Promise<void> {
+    if (!this.transporter) {
+      this.logger.warn('Email service not configured. Skipping test email.');
+      return;
+    }
+
+    const mailOptions = {
+      from: this.configService.get<string>('FROM_EMAIL', 'noreply@invitedplus.com'),
+      to: email,
+      subject: 'Test Email - Invited+ Platform',
+      html: this.getTestEmailTemplate(),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Test email sent successfully to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send test email to ${email}:`, error);
+      throw error;
+    }
+  }
+
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     if (!this.transporter) {
       this.logger.warn('Email service not configured. Skipping verification email.');
@@ -56,6 +101,28 @@ export class EmailService {
       this.logger.log(`Verification email sent to ${email}`);
     } catch (error) {
       this.logger.error(`Failed to send verification email to ${email}:`, error);
+      throw error;
+    }
+  }
+
+  async sendVerificationCodeEmail(email: string, name: string, code: string): Promise<void> {
+    if (!this.transporter) {
+      this.logger.warn('Email service not configured. Skipping verification code email.');
+      return;
+    }
+
+    const mailOptions = {
+      from: this.configService.get<string>('FROM_EMAIL', 'noreply@invitedplus.com'),
+      to: email,
+      subject: 'Your Verification Code - Invited+',
+      html: this.getVerificationCodeEmailTemplate(name, code),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Verification code email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send verification code email to ${email}:`, error);
       throw error;
     }
   }
@@ -285,6 +352,131 @@ export class EmailService {
           <div class="footer">
             <p>Powered by Invited+ - Smart Event Management</p>
             <p>&copy; 2025 Invited+. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getTestEmailTemplate(): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Test Email - Invited+</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Email Service Test</h1>
+          </div>
+          <div class="content">
+            <div class="success">
+              <strong>✅ Success!</strong> Your email service is working correctly.
+            </div>
+            <h2>Invited+ Email Service</h2>
+            <p>This is a test email to verify that your SMTP configuration is working properly.</p>
+            <p><strong>Email service features:</strong></p>
+            <ul>
+              <li>✅ Email verification for new users</li>
+              <li>✅ Password reset functionality</li>
+              <li>✅ Event invitations</li>
+              <li>✅ Task assignment notifications</li>
+              <li>✅ System announcements</li>
+            </ul>
+            <p>If you received this email, your email service is configured correctly and ready for production use!</p>
+          </div>
+          <div class="footer">
+            <p>Powered by Invited+ - Smart Event Management</p>
+            <p>&copy; 2025 Invited+. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getVerificationCodeEmailTemplate(name: string, code: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verification Code - Invited+</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background: white; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+          .content { padding: 40px 30px; }
+          .code-container { background: #f8f9fa; border: 2px dashed #007bff; border-radius: 10px; padding: 30px; text-align: center; margin: 30px 0; }
+          .verification-code { font-size: 36px; font-weight: bold; color: #007bff; letter-spacing: 8px; font-family: 'Courier New', monospace; }
+          .code-label { font-size: 14px; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+          .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 14px; }
+          .footer { text-align: center; padding: 30px; background: #f8f9fa; color: #666; font-size: 14px; }
+          .highlight { color: #007bff; font-weight: bold; }
+          .steps { background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .steps ol { margin: 0; padding-left: 20px; }
+          .steps li { margin: 8px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Email Verification</h1>
+            <p style="margin: 0; opacity: 0.9;">Welcome to Invited+</p>
+          </div>
+          <div class="content">
+            <h2>Hi ${name}! 👋</h2>
+            <p>Thank you for signing up for <strong>Invited+</strong>! To complete your registration and secure your account, please verify your email address using the code below:</p>
+
+            <div class="code-container">
+              <div class="code-label">Your Verification Code</div>
+              <div class="verification-code">${code}</div>
+            </div>
+
+            <div class="steps">
+              <h3>How to verify your email:</h3>
+              <ol>
+                <li>Go back to the verification page</li>
+                <li>Enter the <span class="highlight">6-digit code</span> above</li>
+                <li>Click "Verify Email" to complete your registration</li>
+              </ol>
+            </div>
+
+            <div class="warning">
+              <strong>⏰ Important:</strong> This verification code will expire in <strong>15 minutes</strong> for security reasons. If it expires, you can request a new code.
+            </div>
+
+            <p><strong>Why verify your email?</strong></p>
+            <ul>
+              <li>🔒 Secure your account</li>
+              <li>📧 Receive important notifications</li>
+              <li>🎫 Get event invitations</li>
+              <li>📋 Receive task assignments</li>
+              <li>🔄 Enable password recovery</li>
+            </ul>
+
+            <p>If you didn't create an account with Invited+, please ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p><strong>Invited+</strong> - Smart Event Management Platform</p>
+            <p>&copy; 2025 Invited+. All rights reserved.</p>
+            <p style="font-size: 12px; margin-top: 15px;">
+              This is an automated message. Please do not reply to this email.
+            </p>
           </div>
         </div>
       </body>

@@ -12,6 +12,8 @@ import {
   Response,
   UploadedFile,
   UseInterceptors,
+  Put,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
@@ -129,6 +131,52 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   async updateProfile(@CurrentUser() user: any, @Body() updateProfileDto: UpdateProfileDto) {
     return this.authService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile (PUT)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async updateProfilePut(@CurrentUser() user: any, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('preferences')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update user preferences' })
+  @ApiResponse({ status: 200, description: 'Preferences updated successfully' })
+  async updatePreferences(@CurrentUser() user: any, @Body() preferences: any) {
+    return this.authService.updatePreferences(user.id, preferences);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('export-data')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Request data export' })
+  @ApiResponse({ status: 200, description: 'Data export requested successfully' })
+  async exportData(@CurrentUser() user: any) {
+    return this.authService.exportData(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('account')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete user account' })
+  @ApiResponse({ status: 200, description: 'Account deleted successfully' })
+  async deleteAccount(@CurrentUser() user: any) {
+    return this.authService.deleteAccount(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('disable-2fa')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disable two-factor authentication' })
+  @ApiResponse({ status: 200, description: '2FA disabled successfully' })
+  async disable2FA(@CurrentUser() user: any) {
+    return this.authService.disable2FA(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -252,5 +300,31 @@ export class AuthController {
       const frontendUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
       return res.redirect(`${frontendUrl}/auth/callback?error=github_auth_failed`);
     }
+  }
+
+  @Public()
+  @Post('verify-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with 6-digit code' })
+  @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  async verifyEmailWithCode(@Body() body: { email: string; code: string }) {
+    return this.authService.verifyEmailWithCode(body.email, body.code);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  async changePassword(@Request() req, @Body() body: { currentPassword: string; newPassword: string }) {
+    return this.authService.changePassword(req.user.id, body.currentPassword, body.newPassword);
+  }
+
+  @Public()
+  @Post('test-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Test email service configuration' })
+  @ApiResponse({ status: 200, description: 'Email service test completed' })
+  async testEmail(@Body() body: { email: string }) {
+    return this.authService.testEmailService(body.email);
   }
 }

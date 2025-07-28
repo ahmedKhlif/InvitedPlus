@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import AdminLayout from '@/components/admin/AdminLayout';
-import AdminRoute from '@/components/auth/AdminRoute';
+import api from '@/lib/api';
 import { authService } from '@/lib/services';
+import { useToast } from '@/lib/contexts/ToastContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import RecentActivity from '@/components/dashboard/RecentActivity';
 import {
   CalendarIcon,
   ClipboardDocumentListIcon,
@@ -13,7 +16,13 @@ import {
   ChartBarIcon,
   UserIcon,
   ClockIcon,
-  EyeIcon
+  EyeIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
+  CogIcon,
+  DocumentTextIcon,
+  ShieldCheckIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 interface PlatformStats {
@@ -106,25 +115,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
-
-  const fetchRecentActivity = async () => {
-    try {
-      setActivitiesLoading(true);
-      const response = await authService.getRecentActivity(20);
-      if (response.success) {
-        setActivities(response.activities);
-      } else {
-        console.error('Failed to fetch recent activity');
-      }
-    } catch (error) {
-      console.error('Error fetching recent activity:', error);
-    } finally {
-      setActivitiesLoading(false);
-    }
-  };
+  const { showError } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -144,296 +137,361 @@ export default function AdminDashboard() {
         }
 
         // Fetch platform stats using the API service
-        const response = await fetch('http://localhost:3001/api/admin/stats', {
-          headers: {
-            'Authorization': `Bearer ${authService.getToken()}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data.stats);
-        }
-
-        // Fetch recent activity
-        await fetchRecentActivity();
-      } catch (error) {
+        const statsResponse = await api.get('/admin/stats');
+        setStats(statsResponse.data.stats);
+      } catch (error: any) {
         console.error('Failed to fetch admin data:', error);
+        showError('Failed to load admin dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [router]);
+  }, [router, showError]);
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   if (!user || user.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="mt-2 text-gray-600">You need admin privileges to access this page.</p>
-          <Link href="/dashboard" className="mt-4 inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-            Go to Dashboard
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card variant="elevated" className="max-w-md w-full mx-4">
+          <CardContent className="p-8 text-center">
+            <ExclamationTriangleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+            <p className="text-gray-600 mb-6">You need admin privileges to access this page.</p>
+            <Button asChild>
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <AdminRoute>
-      <AdminLayout>
-        <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-          <p className="mt-1 text-sm text-gray-600">Welcome to the admin dashboard. Monitor and manage your platform.</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <ShieldCheckIcon className="h-8 w-8 mr-3 text-blue-600" />
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600">Platform management and analytics</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => router.push('/dashboard')}
+                variant="outline"
+                className="flex items-center"
+              >
+                <UserIcon className="h-4 w-4 mr-2" />
+                Switch to User View
+              </Button>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        {/* Stats Grid */}
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span>Welcome back,</span>
+                <span className="font-medium text-gray-900">{user?.name || 'Admin'}</span>
+              </div>
+
+              <Button
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  router.push('/auth/login');
+                }}
+                variant="outline"
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Statistics Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+            <Card variant="elevated" className="backdrop-blur-sm">
+              <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
-                      <span className="text-white font-bold">U</span>
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <UserIcon className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                      <dd className="text-lg font-medium text-gray-900">{stats.totalUsers}</dd>
-                    </dl>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Users</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                    <div className="flex items-center mt-1">
+                      <ArrowTrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-sm text-green-600">+{stats.recentUsers} this week</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+            <Card variant="elevated" className="backdrop-blur-sm">
+              <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                      <span className="text-white font-bold">E</span>
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <CalendarIcon className="h-6 w-6 text-green-600" />
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Total Events</dt>
-                      <dd className="text-lg font-medium text-gray-900">{stats.totalEvents}</dd>
-                    </dl>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Events</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
+                    <div className="flex items-center mt-1">
+                      <ArrowTrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-sm text-green-600">{stats.activeEvents} active</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+            <Card variant="elevated" className="backdrop-blur-sm">
+              <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                      <span className="text-white font-bold">T</span>
+                    <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <ClipboardDocumentListIcon className="h-6 w-6 text-yellow-600" />
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Total Tasks</dt>
-                      <dd className="text-lg font-medium text-gray-900">{stats.totalTasks}</dd>
-                    </dl>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Tasks</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalTasks}</p>
+                    <div className="flex items-center mt-1">
+                      <ClockIcon className="h-4 w-4 text-gray-500 mr-1" />
+                      <span className="text-sm text-gray-600">Across all events</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+            <Card variant="elevated" className="backdrop-blur-sm">
+              <CardContent className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                      <span className="text-white font-bold">A</span>
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <ChatBubbleLeftRightIcon className="h-6 w-6 text-purple-600" />
                     </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Active Events</dt>
-                      <dd className="text-lg font-medium text-gray-900">{stats.activeEvents}</dd>
-                    </dl>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Total Messages</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalMessages}</p>
+                    <div className="flex items-center mt-1">
+                      <ArrowTrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-sm text-green-600">Active discussions</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link href="/admin/users" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <span className="text-indigo-600 font-bold text-xl">👥</span>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Manage Users</h3>
-                <p className="text-sm text-gray-500">Create, edit, and manage user accounts</p>
-              </div>
-            </div>
-          </Link>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/users">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <UserIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Manage Users</h3>
+                    <p className="text-sm text-gray-500">Create, edit, and manage user accounts</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
 
-          <Link href="/admin/events" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-green-600 font-bold text-xl">📅</span>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Manage Events</h3>
-                <p className="text-sm text-gray-500">Oversee all platform events</p>
-              </div>
-            </div>
-          </Link>
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/events">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CalendarIcon className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Manage Events</h3>
+                    <p className="text-sm text-gray-500">Oversee all platform events</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
 
-          <Link href="/admin/analytics" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-purple-600 font-bold text-xl">📊</span>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Analytics</h3>
-                <p className="text-sm text-gray-500">Platform insights and reports</p>
-              </div>
-            </div>
-          </Link>
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/analytics">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <ChartBarIcon className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Analytics</h3>
+                    <p className="text-sm text-gray-500">Platform insights and reports</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
 
-          <Link href="/admin/logs" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <ClockIcon className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">Activity Logs</h3>
-                <p className="text-sm text-gray-500">View detailed platform activity logs</p>
-              </div>
-            </div>
-          </Link>
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/logs">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <ClockIcon className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Activity Logs</h3>
+                    <p className="text-sm text-gray-500">View detailed platform activity logs</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/chat">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <ChatBubbleLeftRightIcon className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Chat & Messages</h3>
+                    <p className="text-sm text-gray-500">Moderate communications</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/tasks">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <ClipboardDocumentListIcon className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Task Management</h3>
+                    <p className="text-sm text-gray-500">Oversee all tasks</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/settings">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <CogIcon className="h-6 w-6 text-gray-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">System Settings</h3>
+                    <p className="text-sm text-gray-500">Configure platform</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card variant="elevated" className="backdrop-blur-sm hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/reports">
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <DocumentTextIcon className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Reports</h3>
+                    <p className="text-sm text-gray-500">Generate reports</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
         </div>
 
         {/* User Role Distribution */}
         {stats && (
-          <div className="bg-white shadow rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">User Role Distribution</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.usersByRole?.ADMIN || 0}</div>
-                <div className="text-sm text-gray-500">Admins</div>
+          <Card variant="elevated" className="backdrop-blur-sm mb-8">
+            <CardHeader>
+              <CardTitle>User Role Distribution</CardTitle>
+              <CardDescription>Overview of user roles across the platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <ShieldCheckIcon className="h-8 w-8 text-red-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-red-600">{stats.usersByRole?.ADMIN || 0}</div>
+                  <div className="text-sm text-gray-500">Admins</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <CogIcon className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">{stats.usersByRole?.ORGANIZER || 0}</div>
+                  <div className="text-sm text-gray-500">Organizers</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <UserIcon className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">{stats.usersByRole?.GUEST || 0}</div>
+                  <div className="text-sm text-gray-500">Guests</div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.usersByRole?.ORGANIZER || 0}</div>
-                <div className="text-sm text-gray-500">Organizers</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.usersByRole?.GUEST || 0}</div>
-                <div className="text-sm text-gray-500">Guests</div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Recent Activity Logs */}
-        <div id="activity-logs" className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Recent Activity Logs</h3>
-            <button
-              onClick={fetchRecentActivity}
-              disabled={activitiesLoading}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {activitiesLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500 mr-2"></div>
-              ) : (
-                <EyeIcon className="h-4 w-4 mr-2" />
-              )}
-              Refresh
-            </button>
-          </div>
-
-          {activitiesLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        {/* Recent Activity */}
+        <Card variant="elevated" className="backdrop-blur-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest platform activities and events</CardDescription>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/admin/logs">View All Logs</Link>
+              </Button>
             </div>
-          ) : activities.length === 0 ? (
-            <div className="text-center py-8">
-              <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No activity yet</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Activity logs will appear here as users interact with the platform.
-              </p>
-            </div>
-          ) : (
-            <div className="flow-root">
-              <ul className="-mb-8">
-                {activities.map((activity, activityIdx) => (
-                  <li key={activity.id}>
-                    <div className="relative pb-8">
-                      {activityIdx !== activities.length - 1 ? (
-                        <span
-                          className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                      <div className="relative flex space-x-3">
-                        <div>
-                          <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${getActivityIconBg(activity.type)}`}>
-                            {getActivityIcon(activity.type)}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              <span className="font-medium text-gray-900">{activity.user?.name || 'Unknown User'}</span>{' '}
-                              {activity.description}
-                              {activity.relatedEntity && (
-                                <>
-                                  {' '}in{' '}
-                                  <Link
-                                    href={activity.relatedEntity.href}
-                                    className="font-medium text-indigo-600 hover:text-indigo-500"
-                                  >
-                                    {activity.relatedEntity.name}
-                                  </Link>
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                            <time dateTime={activity.timestamp}>
-                              {formatRelativeTime(activity.timestamp)}
-                            </time>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        </div>
-      </div>
-      </AdminLayout>
-    </AdminRoute>
+          </CardHeader>
+          <CardContent>
+            <RecentActivity limit={5} showRefresh={true} />
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }

@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { authService, eventsService, tasksService, chatService, invitesService, pollsService } from '@/lib/services';
+import {
+  CalendarIcon,
+  ClipboardDocumentListIcon,
+  ChatBubbleLeftRightIcon,
+  TicketIcon,
+  UserIcon,
+  DocumentTextIcon,
+  LinkIcon,
+  EnvelopeIcon
+} from '@heroicons/react/24/outline';
 
 export default function TestPage() {
   const [results, setResults] = useState<any[]>([]);
@@ -173,14 +183,39 @@ export default function TestPage() {
 
           {/* Quick Links */}
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">🔗 Quick Links</h2>
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <LinkIcon className="h-5 w-5 mr-2" />
+              Quick Links
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <Link href="/events" className="btn-outline text-center">📅 Events</Link>
-              <Link href="/tasks" className="btn-outline text-center">📋 Tasks</Link>
-              <Link href="/chat" className="btn-outline text-center">💬 Chat</Link>
-              <Link href="/invite" className="btn-outline text-center">🎫 Invites</Link>
-              <Link href="/profile" className="btn-outline text-center">👤 Profile</Link>
-              <a href="http://localhost:3001/api/docs" target="_blank" className="btn-outline text-center">📚 API Docs</a>
+              <Link href="/events" className="btn-outline text-center flex items-center justify-center">
+                <CalendarIcon className="h-4 w-4 mr-1" />
+                Events
+              </Link>
+              <Link href="/tasks" className="btn-outline text-center flex items-center justify-center">
+                <ClipboardDocumentListIcon className="h-4 w-4 mr-1" />
+                Tasks
+              </Link>
+              <Link href="/chat" className="btn-outline text-center flex items-center justify-center">
+                <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
+                Chat
+              </Link>
+              <Link href="/invite" className="btn-outline text-center flex items-center justify-center">
+                <TicketIcon className="h-4 w-4 mr-1" />
+                Invites
+              </Link>
+              <Link href="/profile" className="btn-outline text-center flex items-center justify-center">
+                <UserIcon className="h-4 w-4 mr-1" />
+                Profile
+              </Link>
+              <a href="http://localhost:3001/api/docs" target="_blank" className="btn-outline text-center flex items-center justify-center">
+                <DocumentTextIcon className="h-4 w-4 mr-1" />
+                API Docs
+              </a>
+              <Link href="/test-email" className="btn-outline text-center flex items-center justify-center">
+                <EnvelopeIcon className="h-4 w-4 mr-1" />
+                Test Email
+              </Link>
             </div>
           </div>
         </div>

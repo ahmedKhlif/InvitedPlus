@@ -170,4 +170,40 @@ export class UploadService {
       throw new BadRequestException('Failed to create thumbnail');
     }
   }
+
+  async uploadChatFile(file: Express.Multer.File): Promise<string> {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'audio/webm', 'audio/wav', 'audio/mp3', 'audio/ogg',
+      'application/pdf', 'text/plain', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/zip', 'application/x-zip-compressed'
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException('File type not allowed');
+    }
+
+    // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      throw new BadRequestException('File size too large. Maximum 10MB allowed.');
+    }
+
+    const uploadDir = path.join(this.uploadsDir, 'chat');
+
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fileExtension = path.extname(file.originalname);
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2)}${fileExtension}`;
+    const filePath = path.join(uploadDir, filename);
+
+    await fs.promises.writeFile(filePath, file.buffer);
+
+    return `/uploads/chat/${filename}`;
+  }
 }

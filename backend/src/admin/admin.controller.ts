@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpException,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -162,6 +163,49 @@ export class AdminController {
       page: parseInt(page),
       limit: parseInt(limit),
     });
+  }
+
+  @Post('test-activity-logs')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Create test activity logs (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Test activity logs created successfully' })
+  async createTestActivityLogs(@GetUser() admin: any) {
+    return this.adminService.createTestActivityLogs(admin.id);
+  }
+
+  @Post('reports/generate')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Generate report (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Report generated successfully' })
+  async generateReport(
+    @Body() generateReportDto: { type: string; startDate?: string; endDate?: string },
+    @GetUser() admin: any
+  ) {
+    return this.adminService.generateReport(generateReportDto, admin.id);
+  }
+
+  @Get('reports')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get all reports (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Reports retrieved successfully' })
+  async getReports() {
+    return this.adminService.getReports();
+  }
+
+  @Get('reports/:id/download')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Download report (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Report downloaded successfully' })
+  async downloadReport(@Param('id') id: string, @GetUser() admin: any, @Res() res: any) {
+    const result = await this.adminService.downloadReport(id, admin.id);
+
+    if (result.success) {
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.data);
+    } else {
+      res.status(400).json(result);
+    }
   }
 
 }

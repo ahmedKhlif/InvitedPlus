@@ -42,32 +42,13 @@ export class EventsController {
     return this.eventsService.findAll(userId, query);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get event by ID' })
-  @ApiResponse({ status: 200, description: 'Event retrieved successfully' })
-  findOne(@Param('id') id: string, @Request() req: any) {
+  @Get(':id/eligible-assignees')
+  @ApiOperation({ summary: 'Get eligible assignees for event tasks (organizer + attendees)' })
+  @ApiResponse({ status: 200, description: 'Eligible assignees retrieved successfully' })
+  getEligibleAssignees(@Param('id') id: string, @Request() req: any) {
+    console.log('🔍 GET /events/:id/eligible-assignees called with:', { id, userId: req.user?.sub || req.user?.userId || req.user?.id });
     const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.findOne(id, userId);
-  }
-
-  @Patch(':id')
-  @Roles('ADMIN', 'ORGANIZER')
-  @ApiOperation({ summary: 'Update event (Admin/Organizer only)' })
-  @ApiResponse({ status: 200, description: 'Event updated successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
-  update(@Param('id') id: string, @Body() updateEventDto: any, @Request() req: any) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.update(id, updateEventDto, userId);
-  }
-
-  @Delete(':id')
-  @Roles('ADMIN', 'ORGANIZER')
-  @ApiOperation({ summary: 'Delete event (Admin/Organizer only)' })
-  @ApiResponse({ status: 200, description: 'Event deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
-  remove(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.remove(id, userId);
+    return this.eventsService.getEligibleAssignees(id, userId);
   }
 
   @Get(':id/attendees')
@@ -76,30 +57,6 @@ export class EventsController {
   getAttendees(@Param('id') id: string, @Request() req: any) {
     const userId = req.user?.sub || req.user?.userId || req.user?.id;
     return this.eventsService.getAttendees(id, userId);
-  }
-
-  @Get(':id/eligible-assignees')
-  @ApiOperation({ summary: 'Get eligible assignees for event tasks (organizer + attendees)' })
-  @ApiResponse({ status: 200, description: 'Eligible assignees retrieved successfully' })
-  getEligibleAssignees(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.getEligibleAssignees(id, userId);
-  }
-
-  @Post(':id/join')
-  @ApiOperation({ summary: 'Join event' })
-  @ApiResponse({ status: 200, description: 'Joined event successfully' })
-  joinEvent(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.joinEvent(id, userId);
-  }
-
-  @Post(':id/leave')
-  @ApiOperation({ summary: 'Leave event' })
-  @ApiResponse({ status: 200, description: 'Left event successfully' })
-  leaveEvent(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.eventsService.leaveEvent(id, userId);
   }
 
   @Get(':id/export-guests')
@@ -123,8 +80,10 @@ export class EventsController {
   }
 
   @Post(':id/invites')
-  @ApiOperation({ summary: 'Send event invite via email' })
+  @Roles('ADMIN', 'ORGANIZER')
+  @ApiOperation({ summary: 'Send event invite via email (Admin/Organizer only)' })
   @ApiResponse({ status: 201, description: 'Invite sent successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   sendEventInvite(
     @Param('id') id: string,
     @Body() inviteDto: { email: string },
@@ -133,4 +92,52 @@ export class EventsController {
     const userId = req.user?.sub || req.user?.userId || req.user?.id;
     return this.eventsService.sendEventInvite(id, inviteDto.email, userId);
   }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get event by ID' })
+  @ApiResponse({ status: 200, description: 'Event retrieved successfully' })
+  findOne(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.findOne(id, userId);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN', 'ORGANIZER')
+  @ApiOperation({ summary: 'Update event (Admin/Organizer only)' })
+  @ApiResponse({ status: 200, description: 'Event updated successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.update(id, updateEventDto, userId);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN', 'ORGANIZER')
+  @ApiOperation({ summary: 'Delete event (Admin/Organizer only)' })
+  @ApiResponse({ status: 200, description: 'Event deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  remove(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.remove(id, userId);
+  }
+
+
+
+  @Post(':id/join')
+  @ApiOperation({ summary: 'Join event' })
+  @ApiResponse({ status: 200, description: 'Joined event successfully' })
+  joinEvent(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.joinEvent(id, userId);
+  }
+
+  @Post(':id/leave')
+  @ApiOperation({ summary: 'Leave event' })
+  @ApiResponse({ status: 200, description: 'Left event successfully' })
+  leaveEvent(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.leaveEvent(id, userId);
+  }
+
+
 }

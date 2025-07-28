@@ -20,6 +20,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { authService } from '@/lib/services';
 import { usePermissions } from '@/lib/hooks/usePermissions';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface User {
   id: string;
@@ -186,9 +187,7 @@ export default function MainNavigation() {
           {/* Right side - Notifications and Profile */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <BellIcon className="h-6 w-6" />
-            </button>
+            <NotificationBell />
 
             {/* Profile Dropdown */}
             <div className="relative">

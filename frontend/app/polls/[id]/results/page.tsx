@@ -26,7 +26,7 @@ interface Poll {
   totalVotes: number;
   endDate?: string;
   allowMultiple: boolean;
-  createdBy: {
+  createdBy?: {
     id: string;
     name: string;
   };
@@ -36,7 +36,7 @@ interface PollResults {
   success: boolean;
   poll: Poll;
   results: PollResult[];
-  canViewDetails: boolean;
+  canViewDetails?: boolean;
 }
 
 export default function PollResultsPage() {
@@ -146,7 +146,7 @@ export default function PollResultsPage() {
           <div className="flex items-center space-x-6 text-sm text-gray-500">
             <div className="flex items-center">
               <UserIcon className="h-4 w-4 mr-1" />
-              Created by {poll.createdBy.name}
+              Created by {poll.createdBy?.name || 'Unknown'}
             </div>
             {poll.endDate && (
               <div className="flex items-center">

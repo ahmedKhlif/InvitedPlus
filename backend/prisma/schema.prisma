@@ -19,6 +19,8 @@ model User {
   avatar    String?
   isVerified Boolean @default(false)
   verificationToken String?
+  verificationCode String?
+  verificationCodeExpires DateTime?
   resetPasswordToken String?
   resetPasswordExpires DateTime?
   // OAuth fields
@@ -32,6 +34,9 @@ model User {
   preferences Json?  // User preferences (notifications, theme, etc.)
   lastLoginAt DateTime?
   isActive  Boolean @default(true)
+  isOnline  Boolean @default(false)
+  lastSeenAt DateTime?
+  profilePrivacy String @default("public") // "public", "friends", "private"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,12 +45,34 @@ model User {
   invitations     Invitation[]
   tasks           Task[] @relation("TaskAssignee")
   createdTasks    Task[] @relation("TaskCreator")
+  completedTasks  Task[] @relation("TaskCompleter")
   chatMessages    ChatMessage[]
   polls           Poll[]
   pollVotes       PollVote[]
   eventAttendees  EventAttendee[]
   activityLogs    ActivityLog[]
+
+  // Friend system
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+  friendships1           Friendship[] @relation("FriendshipUser1")
+  friendships2           Friendship[] @relation("FriendshipUser2")
+
+  // Private chat
+  sentPrivateMessages    PrivateMessage[] @relation("PrivateMessageSender")
+  receivedPrivateMessages PrivateMessage[] @relation("PrivateMessageReceiver")
+
+  // Message reactions
+  messageReactions       MessageReaction[]
+  privateMessageReactions PrivateMessageReaction[] @relation("PrivateMessageReactions")
+
+  // Whiteboard elements
+  whiteboardElements     WhiteboardElement[]
+
+  // Secure invitations
+  sentInvitations        SecureInvitation[] @relation("InvitationsSent")
   notifications   Notification[]
+  sentNotifications Notification[] @relation("NotificationSender")
   eventTemplates  EventTemplate[]
   checkIns        CheckIn[]
 
@@ -89,6 +116,8 @@ model Event {
   attendees     EventAttendee[]
   notifications Notification[]
   checkIns      CheckIn[]
+  whiteboards   Whiteboard[]
+  secureInvitations SecureInvitation[]
 
   @@map("events")
 }
@@ -136,28 +165,42 @@ model Task {
   eventId     String
   createdById String
   images      Json?      // Array of image URLs
+
+  // Completion details
+  completedAt     DateTime? // When the task was completed
+  completedById   String?   // Who completed the task
+  completionNote  String?   // Comment/note about completion
+  completionImages Json?    // Array of completion proof images
+
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   // Relations
-  assignee  User?  @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  createdBy User   @relation("TaskCreator", fields: [createdById], references: [id])
+  assignee    User?  @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+  completedBy User?  @relation("TaskCompleter", fields: [completedById], references: [id])
+  notifications Notification[]
 
   @@map("tasks")
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   content   String
+  type      MessageType @default(TEXT)
+  mediaUrl  String?     // URL for images, voice messages, etc.
+  mediaType String?     // MIME type (image/jpeg, audio/webm, etc.)
+  duration  Int?        // Duration in seconds for voice messages
   senderId  String
   eventId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   // Relations
   sender User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
   event  Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reactions MessageReaction[]
 
   @@map("chat_messages")
 }
@@ -232,21 +275,35 @@ model ActivityLog {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  title     String
-  message   String
-  type      NotificationType
-  userId    String
-  eventId   String?
-  isRead    Boolean          @default(false)
-  sentAt    DateTime?
-  createdAt DateTime         @default(now())
+  id          String           @id @default(cuid())
+  title       String           // "New task assigned", "User joined event"
+  message     String           // Detailed notification message
+  type        NotificationType // Type of notification
+  isRead      Boolean          @default(false)
 
-  // Relations
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Recipient
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional references to related entities
+  eventId     String?
+  event       Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  taskId      String?
+  task        Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fromUserId  String?          // Who triggered the notification
+  fromUser    User?            @relation("NotificationSender", fields: [fromUserId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  actionUrl   String?          // URL to navigate when clicked
+  priority    NotificationPriority @default(NORMAL)
+  sentAt      DateTime?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("notifications")
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model EventTemplate {
@@ -318,9 +375,26 @@ enum EventStatus {
 }
 
 enum NotificationType {
-  EMAIL
-  PUSH
-  SMS
+  USER_JOINED_EVENT
+  USER_LEFT_EVENT
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  TASK_OVERDUE
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_CANCELLED
+  INVITE_RECEIVED
+  INVITE_ACCEPTED
+  INVITE_DECLINED
+  CHAT_MESSAGE
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 enum ActivityType {
@@ -339,3 +413,134 @@ enum ActivityType {
   INVITATION_SENT
   RSVP_RECEIVED
 }
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  FILE
+}
+
+model FriendRequest {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending") // "pending", "accepted", "declined"
+  message    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+
+  user1 User @relation("FriendshipUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2 User @relation("FriendshipUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@map("friendships")
+}
+
+model PrivateMessage {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  messageType String  @default("text") // "text", "image", "file"
+  fileUrl    String?
+  fileName   String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender   User @relation("PrivateMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("PrivateMessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  reactions PrivateMessageReaction[]
+
+  @@map("private_messages")
+}
+
+model PrivateMessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   // "👍", "❤️", "😂", etc.
+  createdAt DateTime @default(now())
+
+  message PrivateMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User           @relation("PrivateMessageReactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("private_message_reactions")
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   // "👍", "❤️", "😂", etc.
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
+}
+
+model Whiteboard {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String   @default("Whiteboard")
+  data      Json     // Stores the whiteboard canvas data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  elements WhiteboardElement[]
+
+  @@map("whiteboards")
+}
+
+model WhiteboardElement {
+  id           String   @id @default(cuid())
+  whiteboardId String
+  type         String   // "draw", "text", "image", "shape"
+  data         Json     // Element-specific data (coordinates, text, etc.)
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  whiteboard Whiteboard @relation(fields: [whiteboardId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("whiteboard_elements")
+}
+
+model SecureInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  eventId   String
+  invitedBy String
+  token     String   @unique
+  status    String   @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  inviter   User  @relation("InvitationsSent", fields: [invitedBy], references: [id], onDelete: Cascade)
+
+  @@map("secure_invitations")
+}
+
+

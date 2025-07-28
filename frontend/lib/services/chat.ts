@@ -3,6 +3,10 @@ import { api } from '../api';
 export interface ChatMessage {
   id: string;
   content: string;
+  type: 'TEXT' | 'IMAGE' | 'VOICE' | 'FILE';
+  mediaUrl?: string;
+  mediaType?: string;
+  duration?: number;
   senderId: string;
   eventId?: string;
   createdAt: string;
@@ -20,6 +24,10 @@ export interface ChatMessage {
 
 export interface SendMessageData {
   content: string;
+  type?: 'TEXT' | 'IMAGE' | 'VOICE' | 'FILE';
+  mediaUrl?: string;
+  mediaType?: string;
+  duration?: number;
   eventId?: string;
 }
 
@@ -85,6 +93,19 @@ export const chatService = {
       content: data.content
     };
 
+    // Include all media-related fields
+    if (data.type) {
+      cleanData.type = data.type;
+    }
+    if (data.mediaUrl) {
+      cleanData.mediaUrl = data.mediaUrl;
+    }
+    if (data.mediaType) {
+      cleanData.mediaType = data.mediaType;
+    }
+    if (data.duration) {
+      cleanData.duration = data.duration;
+    }
     if (data.eventId && data.eventId.trim() !== '') {
       cleanData.eventId = data.eventId;
     }
@@ -99,6 +120,45 @@ export const chatService = {
     limit?: number;
   }): Promise<EventMessagesResponse> {
     const response = await api.get(`/chat/events/${eventId}/messages`, { params });
+    return response.data;
+  },
+
+  // Upload image for chat
+  async uploadImage(file: File): Promise<{ success: boolean; data: { url: string; filename: string; type: string } }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await api.post('/chat/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Upload voice message for chat
+  async uploadVoice(file: File): Promise<{ success: boolean; data: { url: string; filename: string; type: string } }> {
+    const formData = new FormData();
+    formData.append('voice', file);
+
+    const response = await api.post('/chat/upload/voice', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Upload file for chat
+  async uploadFile(file: File): Promise<{ success: boolean; data: { url: string; filename: string; type: string } }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/chat/upload/file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 };

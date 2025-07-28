@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, MinLength, MaxLength, IsArray, IsNumber, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsDateString, MinLength, MaxLength, IsArray, IsNumber, IsBoolean, IsEnum } from 'class-validator';
+import { EventStatus } from '@prisma/client';
 
 export class CreateEventDto {
   @ApiProperty({ description: 'Event title', example: 'Annual Tech Conference 2024' })
@@ -68,6 +69,15 @@ export class CreateEventDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Event status',
+    enum: EventStatus,
+    example: EventStatus.DRAFT
+  })
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 }
 
 export class UpdateEventDto {
@@ -141,6 +151,15 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Event status',
+    enum: EventStatus,
+    example: EventStatus.DRAFT
+  })
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 }
 
 export class EventQueryDto {

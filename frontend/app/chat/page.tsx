@@ -4,22 +4,36 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { chatService, authService, eventsService } from '@/lib/services';
-import { PaperAirplaneIcon, UserIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, UserIcon, PhotoIcon, MicrophoneIcon, PaperClipIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
+import api from '@/lib/api';
+import VoiceRecorder from '@/components/chat/VoiceRecorder';
+import MediaMessage from '@/components/chat/MediaMessage';
 
 interface Message {
   id: string;
   content: string;
+  type: 'TEXT' | 'IMAGE' | 'VOICE' | 'FILE';
+  mediaUrl?: string;
+  mediaType?: string;
+  duration?: number;
   sender: {
     id: string;
     name: string;
     email: string;
   };
+  senderId: string;
   createdAt: string;
+  updatedAt: string;
   eventId?: string;
   event?: {
     id: string;
     title: string;
   };
+  reactions?: {
+    emoji: string;
+    count: number;
+    users: { id: string; name: string; avatar?: string }[];
+  }[];
 }
 
 interface User {
@@ -35,8 +49,17 @@ export default function ChatPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [error, setError] = useState('');
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Popular emojis for quick reactions
+  const popularEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,10 +120,21 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const addReaction = async (messageId: string, emoji: string) => {
+    try {
+      await api.post(`/chat/messages/${messageId}/react`, { emoji });
+      // Refresh messages to show updated reactions
+      fetchMessages();
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || sending) return;
 
+    setSending(true);
     try {
       await chatService.sendMessage({
         content: newMessage.trim(),
@@ -113,6 +147,91 @@ export default function ChatPage() {
     } catch (error: any) {
       console.error('Failed to send message:', error);
       setError('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const uploadResponse = await chatService.uploadImage(file);
+
+      const messageData = {
+        content: newMessage.trim() || 'Shared an image',
+        type: 'IMAGE' as const,
+        mediaUrl: uploadResponse.data.url,
+        mediaType: file.type,
+        eventId: selectedEventId || undefined
+      };
+
+      await chatService.sendMessage(messageData);
+      setNewMessage('');
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setError('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleVoiceRecording = async (audioBlob: Blob, duration: number) => {
+    if (!user) return;
+
+    setUploading(true);
+    try {
+      const file = new File([audioBlob], 'voice-message.webm', { type: 'audio/webm' });
+      const uploadResponse = await chatService.uploadVoice(file);
+
+      const messageData = {
+        content: newMessage.trim() || 'Sent a voice message',
+        type: 'VOICE' as const,
+        mediaUrl: uploadResponse.data.url,
+        mediaType: 'audio/webm',
+        duration: duration,
+        eventId: selectedEventId || undefined
+      };
+
+      await chatService.sendMessage(messageData);
+      setNewMessage('');
+      setShowVoiceRecorder(false);
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error uploading voice message:', error);
+      setError('Failed to upload voice message');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const uploadResponse = await chatService.uploadFile(file);
+
+      const messageData = {
+        content: newMessage.trim() || `Shared a file: ${file.name}`,
+        type: 'FILE' as const,
+        mediaUrl: uploadResponse.data.url,
+        mediaType: file.type,
+        eventId: selectedEventId || undefined
+      };
+
+      await chatService.sendMessage(messageData);
+      setNewMessage('');
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setError('Failed to upload file');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -205,20 +324,78 @@ export default function ChatPage() {
                   
                   <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
-                      <div className={`px-4 py-2 rounded-lg ${
-                        isCurrentUser 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-900'
-                      }`}>
-                        <p className="text-sm">{message.content}</p>
-                      </div>
+                      {!isCurrentUser && (
+                        <div className="text-xs font-medium text-gray-600 mb-1">
+                          {message.sender.name}
+                        </div>
+                      )}
+                      <MediaMessage
+                        message={message}
+                        isOwnMessage={isCurrentUser}
+                      />
                       <div className={`mt-1 text-xs text-gray-500 ${
                         isCurrentUser ? 'text-right' : 'text-left'
                       }`}>
-                        {!isCurrentUser && (
-                          <span className="font-medium">{message.sender.name} • </span>
-                        )}
                         {formatTime(message.createdAt)}
+                      </div>
+
+                      {/* Reactions */}
+                      {message.reactions && message.reactions.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {message.reactions.map((reaction, index) => (
+                            <button
+                              key={index}
+                              onClick={() => addReaction(message.id, reaction.emoji)}
+                              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs transition-colors ${
+                                isCurrentUser
+                                  ? 'bg-indigo-500 hover:bg-indigo-400 text-white'
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              }`}
+                              title={reaction.users && reaction.users.length > 0 ? reaction.users.map(u => u.name).join(', ') : 'No users'}
+                            >
+                              <span>{reaction.emoji}</span>
+                              <span className={isCurrentUser ? 'text-indigo-100' : 'text-gray-600'}>
+                                {reaction.count || 0}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Quick Reactions */}
+                      <div className="flex items-center space-x-1 mt-2">
+                        <button
+                          onClick={() => setShowEmojiPicker(showEmojiPicker === message.id ? null : message.id)}
+                          className={`p-1.5 rounded-full transition-colors border ${
+                            isCurrentUser
+                              ? 'text-indigo-200 border-indigo-400 hover:text-white hover:bg-indigo-500 hover:border-indigo-500'
+                              : 'text-gray-600 border-gray-300 hover:text-gray-800 hover:bg-gray-100 hover:border-gray-400'
+                          }`}
+                          title="Add reaction"
+                        >
+                          <FaceSmileIcon className="h-4 w-4" />
+                        </button>
+
+                        {showEmojiPicker === message.id && (
+                          <div className="flex space-x-1 ml-2">
+                            {popularEmojis.map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => {
+                                  addReaction(message.id, emoji);
+                                  setShowEmojiPicker(null);
+                                }}
+                                className={`p-1 rounded transition-colors ${
+                                  isCurrentUser
+                                    ? 'hover:bg-indigo-500 text-white'
+                                    : 'hover:bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -236,25 +413,99 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Voice Recorder */}
+          {showVoiceRecorder && (
+            <div className="p-4 border-t border-gray-200">
+              <VoiceRecorder
+                onRecordingComplete={handleVoiceRecording}
+                onCancel={() => setShowVoiceRecorder(false)}
+                disabled={uploading}
+              />
+            </div>
+          )}
+
           {/* Message Input */}
           <div className="border-t border-gray-200 p-4">
-            <form onSubmit={handleSendMessage} className="flex space-x-3">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                disabled={!newMessage.trim()}
-                className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <PaperAirplaneIcon className="h-4 w-4" />
-                <span>Send</span>
-              </button>
-            </form>
+            <div className="flex items-end space-x-3">
+              {/* Media Buttons */}
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploading || sending}
+                  className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Upload image"
+                >
+                  <PhotoIcon className="h-5 w-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
+                  disabled={uploading || sending}
+                  className={`p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    showVoiceRecorder
+                      ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                      : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                  title="Record voice message"
+                >
+                  <MicrophoneIcon className="h-5 w-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || sending}
+                  className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Upload file"
+                >
+                  <PaperClipIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Message Form */}
+              <form onSubmit={handleSendMessage} className="flex-1 flex space-x-3">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={sending || uploading}
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim() || sending || uploading}
+                  className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <PaperAirplaneIcon className="h-5 w-5" />
+                </button>
+              </form>
+            </div>
+
+            {/* Upload Status */}
+            {uploading && (
+              <div className="mt-2 text-sm text-indigo-600 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2"></div>
+                Uploading...
+              </div>
+            )}
+
+            {/* Hidden File Inputs */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
           </div>
         </div>
 

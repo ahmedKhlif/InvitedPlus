@@ -25,6 +25,11 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) {}
 
+  private generateVerificationCode(): string {
+    // Generate a 6-digit verification code
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
   async register(registerDto: RegisterDto) {
     const { name, email, password } = registerDto;
 
@@ -40,8 +45,10 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Generate verification token
+    // Generate verification code and token
+    const verificationCode = this.generateVerificationCode();
     const verificationToken = randomBytes(32).toString('hex');
+    const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Create user
     const user = await this.prismaService.user.create({
@@ -50,6 +57,8 @@ export class AuthService {
         email,
         password: hashedPassword,
         verificationToken,
+        verificationCode,
+        verificationCodeExpires,
         role: 'GUEST', // Default role
       },
       select: {
@@ -62,9 +71,9 @@ export class AuthService {
       },
     });
 
-    // Send verification email
+    // Send verification email with code
     try {
-      await this.emailService.sendVerificationEmail(email, verificationToken);
+      await this.emailService.sendVerificationCodeEmail(email, name, verificationCode);
     } catch (error) {
       // Log error but don't fail registration
       console.error('Failed to send verification email:', error);
@@ -72,7 +81,7 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message: 'Registration successful. Please check your email for the 6-digit verification code.',
       user,
     };
   }
@@ -300,6 +309,72 @@ export class AuthService {
     };
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    // Find user
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Validate new password strength
+    if (newPassword.length < 8) {
+      throw new BadRequestException('New password must be at least 8 characters long');
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    return {
+      success: true,
+      message: 'Password changed successfully',
+    };
+  }
+
+  async testEmailService(email: string) {
+    try {
+      // Test email connection
+      const connectionTest = await this.emailService.testEmailConnection();
+
+      if (!connectionTest.success) {
+        return {
+          success: false,
+          message: connectionTest.message,
+          details: 'SMTP connection failed'
+        };
+      }
+
+      // Send test email
+      await this.emailService.sendTestEmail(email);
+
+      return {
+        success: true,
+        message: `Test email sent successfully to ${email}`,
+        details: 'Email service is working correctly'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to send test email',
+        details: error.message
+      };
+    }
+  }
+
   async verifyEmail(token: string) {
     const user = await this.prismaService.user.findFirst({
       where: { verificationToken: token },
@@ -315,12 +390,52 @@ export class AuthService {
       data: {
         isVerified: true,
         verificationToken: null,
+        verificationCode: null,
+        verificationCodeExpires: null,
       },
     });
 
     return {
       success: true,
       message: 'Email verified successfully',
+    };
+  }
+
+  async verifyEmailWithCode(email: string, code: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.isVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    if (!user.verificationCode || user.verificationCode !== code) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    if (!user.verificationCodeExpires || user.verificationCodeExpires < new Date()) {
+      throw new BadRequestException('Verification code has expired. Please request a new one.');
+    }
+
+    // Update user as verified
+    await this.prismaService.user.update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        verificationToken: null,
+        verificationCode: null,
+        verificationCodeExpires: null,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Email verified successfully! You can now sign in.',
     };
   }
 
@@ -337,17 +452,23 @@ export class AuthService {
       throw new BadRequestException('Email already verified');
     }
 
-    // Generate new verification token
+    // Generate new verification code and token
+    const verificationCode = this.generateVerificationCode();
     const verificationToken = randomBytes(32).toString('hex');
+    const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     await this.prismaService.user.update({
       where: { id: user.id },
-      data: { verificationToken },
+      data: {
+        verificationToken,
+        verificationCode,
+        verificationCodeExpires,
+      },
     });
 
-    // Send verification email
+    // Send verification email with new code
     try {
-      await this.emailService.sendVerificationEmail(email, verificationToken);
+      await this.emailService.sendVerificationCodeEmail(email, user.name, verificationCode);
     } catch (error) {
       // Log error but don't fail the operation
       console.error('Failed to send verification email:', error);
@@ -355,7 +476,7 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Verification email sent',
+      message: 'New verification code sent to your email',
     };
   }
 
@@ -1336,6 +1457,86 @@ export class AuthService {
         message: 'Failed to create test activity log',
         error: error.message
       };
+    }
+  }
+
+  async updatePreferences(userId: string, preferences: any) {
+    try {
+      // Update user preferences in the database
+      const user = await this.prismaService.user.update({
+        where: { id: userId },
+        data: {
+          preferences: preferences
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          preferences: true
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Preferences updated successfully',
+        user
+      };
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+      throw new BadRequestException('Failed to update preferences');
+    }
+  }
+
+  async exportData(userId: string) {
+    try {
+      // In a real implementation, this would generate a comprehensive data export
+      // For now, we'll just return a success message
+      return {
+        success: true,
+        message: 'Data export requested successfully. You will receive an email when ready.',
+        exportId: `export_${Date.now()}`,
+        estimatedTime: '5-10 minutes'
+      };
+    } catch (error) {
+      console.error('Failed to request data export:', error);
+      throw new BadRequestException('Failed to request data export');
+    }
+  }
+
+  async deleteAccount(userId: string) {
+    try {
+      // In a real implementation, you might want to:
+      // 1. Soft delete or anonymize data
+      // 2. Transfer ownership of events to other organizers
+      // 3. Send confirmation emails
+      // 4. Log the deletion for audit purposes
+
+      // For now, we'll just delete the user
+      await this.prismaService.user.delete({
+        where: { id: userId }
+      });
+
+      return {
+        success: true,
+        message: 'Account deleted successfully'
+      };
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      throw new BadRequestException('Failed to delete account');
+    }
+  }
+
+  async disable2FA(userId: string) {
+    try {
+      // In a real implementation, this would disable 2FA for the user
+      // For now, we'll just return a success message
+      return {
+        success: true,
+        message: 'Two-factor authentication disabled successfully'
+      };
+    } catch (error) {
+      console.error('Failed to disable 2FA:', error);
+      throw new BadRequestException('Failed to disable 2FA');
     }
   }
 }

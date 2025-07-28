@@ -57,7 +57,7 @@ export default function EventInvitesPage() {
       try {
         // Fetch event details
         const eventResponse = await eventsService.getEvent(eventId);
-        setEvent(eventResponse);
+        setEvent(eventResponse.event || eventResponse);
 
         // Fetch invites
         const invitesResponse = await invitesService.getEventInvites(eventId);

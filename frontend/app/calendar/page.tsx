@@ -166,7 +166,10 @@ export default function CalendarPage() {
                 <ChevronLeftIcon className="h-5 w-5" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">📅 Event Calendar</h1>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                  <CalendarIcon className="h-8 w-8 mr-3" />
+                  Event Calendar
+                </h1>
                 <p className="mt-1 text-sm text-gray-500">View and manage your events and tasks</p>
               </div>
             </div>

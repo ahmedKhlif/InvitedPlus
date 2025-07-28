@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './dto/task.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { CreateTaskDto, UpdateTaskDto, TaskQueryDto, CompleteTaskDto } from './dto/task.dto';
 import { TaskStatus, Priority } from '@prisma/client';
 import { UploadService } from '../common/upload/upload.service';
 
@@ -9,6 +10,7 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private uploadService: UploadService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string) {
@@ -92,6 +94,15 @@ export class TasksService {
       console.error('Failed to create activity log for task creation:', error);
     }
 
+    // Trigger notification if task is assigned to someone
+    if (task.assigneeId && task.assigneeId !== userId) {
+      try {
+        await this.notificationsService.triggerTaskAssigned(task.id, task.assigneeId, userId);
+      } catch (error) {
+        console.error('Failed to send notification for task assignment:', error);
+      }
+    }
+
     return task;
   }
 
@@ -168,6 +179,9 @@ export class TasksService {
           createdBy: {
             select: { id: true, name: true, email: true }
           },
+          completedBy: {
+            select: { id: true, name: true, email: true }
+          },
           event: {
             select: { id: true, title: true }
           }
@@ -206,6 +220,9 @@ export class TasksService {
           select: { id: true, name: true, email: true }
         },
         createdBy: {
+          select: { id: true, name: true, email: true }
+        },
+        completedBy: {
           select: { id: true, name: true, email: true }
         },
         event: {
@@ -321,6 +338,9 @@ export class TasksService {
           select: { id: true, name: true, email: true }
         },
         createdBy: {
+          select: { id: true, name: true, email: true }
+        },
+        completedBy: {
           select: { id: true, name: true, email: true }
         },
         event: {
@@ -451,6 +471,149 @@ export class TasksService {
         return acc;
       }, {}),
       overdue
+    };
+  }
+
+  async completeTask(id: string, completeTaskDto: CompleteTaskDto, userId: string) {
+    // Find the task and verify access
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        assignee: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            organizerId: true,
+            attendees: { include: { user: { select: { id: true } } } }
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Check if user has permission to complete this task
+    const isAssignee = task.assigneeId === userId;
+    const isCreator = task.createdById === userId;
+    const isOrganizer = task.event.organizerId === userId;
+    const isAttendee = task.event.attendees.some(attendee => attendee.user.id === userId);
+
+    if (!isAssignee && !isCreator && !isOrganizer && !isAttendee) {
+      throw new ForbiddenException('You do not have permission to complete this task');
+    }
+
+    // Check if task is already completed
+    if (task.status === TaskStatus.COMPLETED) {
+      throw new BadRequestException('Task is already completed');
+    }
+
+    // Update task with completion details
+    const updatedTask = await this.prisma.task.update({
+      where: { id },
+      data: {
+        status: TaskStatus.COMPLETED,
+        completedAt: new Date(),
+        completedById: userId,
+        completionNote: completeTaskDto.completionNote,
+        completionImages: completeTaskDto.completionImages || [],
+      },
+      include: {
+        assignee: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+        completedBy: { select: { id: true, name: true, email: true } },
+        event: { select: { id: true, title: true } }
+      }
+    });
+
+    // Create activity log
+    try {
+      await this.prisma.activityLog.create({
+        data: {
+          action: 'TASK_COMPLETED',
+          description: `Completed task "${task.title}" in event "${task.event.title}"`,
+          userId,
+          entityType: 'task',
+          entityId: task.id,
+          metadata: {
+            taskTitle: task.title,
+            eventId: task.event.id,
+            eventTitle: task.event.title,
+            completionNote: completeTaskDto.completionNote,
+            hasCompletionImages: (completeTaskDto.completionImages?.length || 0) > 0
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create activity log for task completion:', error);
+    }
+
+    // Send notifications to relevant users
+    try {
+      const notificationPromises = [];
+
+      // Notify task creator if different from completer
+      if (task.createdById !== userId) {
+        notificationPromises.push(
+          this.notificationsService.createNotification({
+            userId: task.createdById,
+            title: 'Task Completed',
+            message: `${updatedTask.completedBy.name} completed the task "${task.title}"`,
+            type: 'TASK_COMPLETED',
+            fromUserId: userId,
+            actionUrl: `/events/${task.event.id}/tasks/${task.id}`,
+            taskId: task.id,
+            eventId: task.event.id
+          })
+        );
+      }
+
+      // Notify assignee if different from completer and creator
+      if (task.assigneeId && task.assigneeId !== userId && task.assigneeId !== task.createdById) {
+        notificationPromises.push(
+          this.notificationsService.createNotification({
+            userId: task.assigneeId,
+            title: 'Task Completed',
+            message: `${updatedTask.completedBy.name} completed your assigned task "${task.title}"`,
+            type: 'TASK_COMPLETED',
+            fromUserId: userId,
+            actionUrl: `/events/${task.event.id}/tasks/${task.id}`,
+            taskId: task.id,
+            eventId: task.event.id
+          })
+        );
+      }
+
+      // Notify event organizer if different from completer, creator, and assignee
+      if (task.event.organizerId !== userId &&
+          task.event.organizerId !== task.createdById &&
+          task.event.organizerId !== task.assigneeId) {
+        notificationPromises.push(
+          this.notificationsService.createNotification({
+            userId: task.event.organizerId,
+            title: 'Task Completed',
+            message: `${updatedTask.completedBy.name} completed the task "${task.title}" in your event "${task.event.title}"`,
+            type: 'TASK_COMPLETED',
+            fromUserId: userId,
+            actionUrl: `/events/${task.event.id}/tasks/${task.id}`,
+            taskId: task.id,
+            eventId: task.event.id
+          })
+        );
+      }
+
+      await Promise.all(notificationPromises);
+    } catch (error) {
+      console.error('Failed to send task completion notifications:', error);
+    }
+
+    return {
+      success: true,
+      message: 'Task completed successfully',
+      data: updatedTask
     };
   }
 }

@@ -2,7 +2,9 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException,
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
 import { UploadService } from '../common/upload/upload.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateEventDto, UpdateEventDto, EventQueryDto } from './dto/event.dto';
+import { EventStatus } from '@prisma/client';
 
 @Injectable()
 export class EventsService {
@@ -12,6 +14,7 @@ export class EventsService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private uploadService: UploadService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createEventDto: CreateEventDto, userId: string) {
@@ -55,7 +58,7 @@ export class EventsService {
           organizerId: userId,
           inviteCode,
           qrCode,
-          status: createEventDto.status || 'DRAFT',
+          status: createEventDto.status || EventStatus.DRAFT,
           // Handle tags as comma-separated string
           tags: Array.isArray(createEventDto.tags)
             ? createEventDto.tags.join(',')
@@ -82,6 +85,36 @@ export class EventsService {
           },
         },
       });
+
+      // Create activity log for event creation
+      try {
+        await this.prisma.activityLog.create({
+          data: {
+            action: 'EVENT_CREATED',
+            description: `Created event "${event.title}"`,
+            userId,
+            entityType: 'event',
+            entityId: event.id,
+            metadata: {
+              eventTitle: event.title,
+              eventId: event.id,
+              category: event.category,
+              tags: event.tags,
+              isPublic: event.isPublic,
+              status: event.status,
+            },
+          },
+        });
+      } catch (error) {
+        console.error('Failed to create activity log for event creation:', error);
+      }
+
+      // Trigger notification to admins about new event
+      try {
+        await this.notificationsService.triggerEventCreated(event.id, userId);
+      } catch (error) {
+        this.logger.warn('Failed to send notification for event created', error);
+      }
 
       return {
         success: true,
@@ -177,14 +210,24 @@ export class EventsService {
   }
 
   async findOne(id: string, userId: string) {
+    // First check if user is admin - admins have access to all events
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    let whereClause: any = { id };
+
+    // If not admin, apply access restrictions
+    if (user?.role !== 'ADMIN') {
+      whereClause.OR = [
+        { organizerId: userId },
+        { attendees: { some: { userId } } },
+      ];
+    }
+
     const event = await this.prisma.event.findFirst({
-      where: {
-        id,
-        OR: [
-          { organizerId: userId },
-          { attendees: { some: { userId } } },
-        ],
-      },
+      where: whereClause,
       include: {
         organizer: {
           select: {
@@ -200,6 +243,7 @@ export class EventsService {
                 id: true,
                 name: true,
                 email: true,
+                avatar: true,
               },
             },
           },
@@ -218,15 +262,29 @@ export class EventsService {
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, userId: string) {
+    // First check if user is admin - admins can update any event
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    let whereClause: any = { id };
+
+    // If not admin, only allow organizer to update
+    if (user?.role !== 'ADMIN') {
+      whereClause.organizerId = userId;
+    }
+
     const event = await this.prisma.event.findFirst({
-      where: {
-        id,
-        organizerId: userId, // Only organizer can update
-      },
+      where: whereClause,
     });
 
     if (!event) {
-      throw new ForbiddenException('You can only update events you organize');
+      if (user?.role === 'ADMIN') {
+        throw new NotFoundException('Event not found');
+      } else {
+        throw new ForbiddenException('You can only update events you organize');
+      }
     }
 
     // Handle image cleanup if images are being updated
@@ -250,6 +308,12 @@ export class EventsService {
         startDate: updateEventDto.startDate ? new Date(updateEventDto.startDate) : undefined,
         endDate: updateEventDto.endDate ? new Date(updateEventDto.endDate) : undefined,
         images: updateEventDto.images !== undefined ? updateEventDto.images : undefined,
+        // Handle tags as comma-separated string
+        tags: updateEventDto.tags !== undefined
+          ? (Array.isArray(updateEventDto.tags)
+              ? updateEventDto.tags.join(',')
+              : updateEventDto.tags)
+          : undefined,
       },
       include: {
         organizer: {
@@ -267,6 +331,30 @@ export class EventsService {
       },
     });
 
+    // Create activity log for event update
+    try {
+      await this.prisma.activityLog.create({
+        data: {
+          action: 'EVENT_UPDATED',
+          description: `Updated event "${updatedEvent.title}"`,
+          userId,
+          entityType: 'event',
+          entityId: updatedEvent.id,
+          metadata: {
+            eventTitle: updatedEvent.title,
+            eventId: updatedEvent.id,
+            category: updatedEvent.category,
+            tags: updatedEvent.tags,
+            isPublic: updatedEvent.isPublic,
+            status: updatedEvent.status,
+            changes: JSON.stringify(updateEventDto),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create activity log for event update:', error);
+    }
+
     return {
       success: true,
       message: 'Event updated successfully',
@@ -275,15 +363,58 @@ export class EventsService {
   }
 
   async remove(id: string, userId: string) {
+    // First check if user is admin - admins can delete any event
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    let whereClause: any = { id };
+
+    // If not admin, only allow organizer to delete
+    if (user?.role !== 'ADMIN') {
+      whereClause.organizerId = userId;
+    }
+
     const event = await this.prisma.event.findFirst({
-      where: {
-        id,
-        organizerId: userId, // Only organizer can delete
-      },
+      where: whereClause,
     });
 
     if (!event) {
-      throw new ForbiddenException('You can only delete events you organize');
+      if (user?.role === 'ADMIN') {
+        throw new NotFoundException('Event not found');
+      } else {
+        throw new ForbiddenException('You can only delete events you organize');
+      }
+    }
+
+    // Clean up event images before deletion
+    const eventImages = event.images as string[] || [];
+    if (eventImages.length > 0) {
+      await this.uploadService.deleteImages(eventImages);
+    }
+
+    // Create activity log for event deletion before deleting
+    try {
+      await this.prisma.activityLog.create({
+        data: {
+          action: 'EVENT_DELETED',
+          description: `Deleted event "${event.title}"`,
+          userId,
+          entityType: 'event',
+          entityId: event.id,
+          metadata: {
+            eventTitle: event.title,
+            eventId: event.id,
+            category: event.category,
+            tags: event.tags,
+            isPublic: event.isPublic,
+            status: event.status,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create activity log for event deletion:', error);
     }
 
     await this.prisma.event.delete({
@@ -331,6 +462,8 @@ export class EventsService {
   }
 
   async getEligibleAssignees(id: string, userId: string) {
+    console.log('🔍 EventsService.getEligibleAssignees called with:', { eventId: id, userId });
+
     const event = await this.prisma.event.findFirst({
       where: {
         id,
@@ -364,8 +497,11 @@ export class EventsService {
     });
 
     if (!event) {
+      console.log('❌ Event not found or no access for:', { eventId: id, userId });
       throw new NotFoundException('Event not found or you do not have access');
     }
+
+    console.log('✅ Event found:', { eventId: event.id, title: event.title, organizerId: event.organizerId });
 
     // Combine organizer and attendees, avoiding duplicates
     const eligibleUsers = [];
@@ -392,10 +528,13 @@ export class EventsService {
       }
     });
 
-    return {
+    const response = {
       success: true,
       eligibleAssignees: eligibleUsers,
     };
+
+    console.log('✅ Returning eligible assignees:', { count: eligibleUsers.length, users: eligibleUsers });
+    return response;
   }
 
   async joinEvent(id: string, userId: string) {
@@ -441,6 +580,13 @@ export class EventsService {
         userId,
       },
     });
+
+    // Trigger notification to event organizer
+    try {
+      await this.notificationsService.triggerUserJoinedEvent(id, userId, userId);
+    } catch (error) {
+      this.logger.warn('Failed to send notification for user joined event', error);
+    }
 
     return {
       success: true,
@@ -508,11 +654,10 @@ export class EventsService {
   }
 
   async sendEventInvite(eventId: string, email: string, userId: string) {
-    // Verify user has access to the event (must be organizer)
+    // Verify user has access to the event (organizer or attendee)
     const event = await this.prisma.event.findFirst({
       where: {
         id: eventId,
-        organizerId: userId,
       },
       include: {
         organizer: {
@@ -520,32 +665,80 @@ export class EventsService {
             name: true,
           },
         },
+        attendees: {
+          where: { userId }
+        }
       },
     });
 
     if (!event) {
-      throw new ForbiddenException('You can only send invites for events you organize');
+      throw new NotFoundException('Event not found');
+    }
+
+    // Check if user can send invitations (organizer or attendee)
+    const isOrganizer = event.organizerId === userId;
+    const isAttendee = event.attendees.length > 0;
+
+    if (!isOrganizer && !isAttendee) {
+      throw new ForbiddenException('You can only send invites for events you organize or attend');
+    }
+
+    // Verify that the invited email matches a registered user's email
+    const invitedUser = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!invitedUser) {
+      throw new BadRequestException('Invitation can only be sent to registered users. The email must match a registered account.');
+    }
+
+    // Check if user is already attending the event
+    const existingAttendee = await this.prisma.eventAttendee.findFirst({
+      where: {
+        eventId,
+        userId: invitedUser.id
+      }
+    });
+
+    if (existingAttendee) {
+      throw new BadRequestException('User is already attending this event');
     }
 
     try {
-      // Send the email invitation
+      // Generate secure invitation token
+      const invitationToken = this.generateSecureToken();
+
+      // Create invitation record with token
+      const invitation = await this.prisma.secureInvitation.create({
+        data: {
+          email,
+          eventId,
+          invitedBy: userId,
+          token: invitationToken,
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        }
+      });
+
+      // Send the email invitation with secure token
       await this.emailService.sendEventInvitation(
         email,
         event.title,
-        event.inviteCode,
+        invitationToken,
         event.organizer.name
       );
 
       return {
         success: true,
-        message: 'Invitation sent successfully',
+        message: 'Secure invitation sent successfully',
         invite: {
-          id: `invite-${Date.now()}`,
+          id: invitation.id,
           email,
           eventId: event.id,
-          code: event.inviteCode,
+          token: invitationToken,
           status: 'PENDING',
-          createdAt: new Date().toISOString(),
+          createdAt: invitation.createdAt,
+          expiresAt: invitation.expiresAt,
         },
       };
     } catch (error) {
@@ -567,6 +760,11 @@ export class EventsService {
     // In a real implementation, you would use a QR code library
     // For now, we'll return a placeholder URL
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${inviteCode}`;
+  }
+
+  private generateSecureToken(): string {
+    const crypto = require('crypto');
+    return crypto.randomBytes(32).toString('hex');
   }
 
   async exportGuestList(eventId: string, userId: string, format: 'csv' | 'json' = 'csv') {

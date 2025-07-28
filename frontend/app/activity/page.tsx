@@ -56,7 +56,7 @@ export default function ActivityPage() {
         return;
       }
 
-      const response = await authService.getRecentActivity(50, filter === 'all' ? undefined : filter);
+      const response = await authService.getRecentActivity(50);
 
       if (response.success) {
         if (page === 1) {

@@ -19,7 +19,7 @@ interface Event {
     name: string;
     email: string;
   };
-  _count: {
+  _count?: {
     attendees: number;
   };
 }
@@ -37,9 +37,9 @@ export default function InvitePage() {
     const fetchEventByInviteCode = async () => {
       try {
         // Call the real API endpoint to get event by invite code
-        console.log('Fetching event for invite code:', params.code);
+        console.log('Fetching event for invite code:', params.code as string);
 
-        const response = await invitesService.getEventByInviteCode(params.code);
+        const response = await invitesService.getEventByInviteCode(params.code as string);
 
         if (response.success && response.event) {
           setEvent(response.event);
@@ -67,15 +67,15 @@ export default function InvitePage() {
       const token = localStorage.getItem('token');
       if (!token) {
         // Redirect to login with return URL
-        router.push(`/auth/login?returnUrl=/invite/${params.code}`);
+        router.push(`/auth/login?returnUrl=/invite/${params.code as string}`);
         return;
       }
 
       // Call the real API to submit RSVP
       const rsvpStatus = status === 'accepted' ? 'ACCEPTED' : 'DECLINED';
-      console.log('Submitting RSVP:', rsvpStatus, 'for invite code:', params.code);
+      console.log('Submitting RSVP:', rsvpStatus, 'for invite code:', params.code as string);
 
-      const response = await invitesService.rsvpToEvent(params.code, { status: rsvpStatus });
+      const response = await invitesService.rsvpToEvent(params.code as string, { status: rsvpStatus });
 
       if (response.success) {
         setRsvpStatus(status);
@@ -233,7 +233,7 @@ export default function InvitePage() {
                     <div>
                       <p className="text-gray-900 font-medium">Current Attendees</p>
                       <p className="text-gray-600 text-sm">
-                        {event._count.attendees} people attending
+                        {event._count?.attendees || 0} people attending
                         {event.maxAttendees && ` (${event.maxAttendees} max)`}
                       </p>
                     </div>
