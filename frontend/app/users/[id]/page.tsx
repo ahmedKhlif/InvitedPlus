@@ -239,7 +239,7 @@ export default function UserProfilePage() {
                   <Button
                     onClick={handleSendMessage}
                     className="w-full"
-                    variant="default"
+                    variant="primary"
                   >
                     <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2" />
                     Send Message

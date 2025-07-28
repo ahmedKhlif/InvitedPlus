@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { 
   Notification, 
@@ -100,7 +100,7 @@ export default function ToastNotification({
         <div className="flex items-start space-x-3 pr-6">
           {/* Icon */}
           <div className={`flex-shrink-0 text-xl ${getNotificationColor(notification.priority)}`}>
-            {getNotificationIcon(notification.type)}
+            {React.createElement(getNotificationIcon(notification.type), { className: "h-5 w-5" })}
           </div>
 
           {/* Text Content */}

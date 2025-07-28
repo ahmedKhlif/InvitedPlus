@@ -144,7 +144,7 @@ export default function EventWhiteboardPage() {
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
 
   // Notification debouncing
   const [notificationQueue, setNotificationQueue] = useState<{[key: string]: NodeJS.Timeout}>({});
@@ -309,12 +309,8 @@ export default function EventWhiteboardPage() {
       reconnectionAttempts: 3, // Reduced attempts
       reconnectionDelay: 2000,
       reconnectionDelayMax: 5000,
-      maxReconnectionAttempts: 3,
       forceNew: true, // Force new connection to prevent conflicts
       autoConnect: true,
-      // Add heartbeat to detect dead connections
-      pingTimeout: 60000,
-      pingInterval: 25000,
     });
 
     newSocket.on('connect', () => {
@@ -1310,7 +1306,7 @@ export default function EventWhiteboardPage() {
                 ].map(({ tool, icon: Icon, label, color }) => (
                   <Button
                     key={tool}
-                    variant={currentTool === tool ? 'default' : 'outline'}
+                    variant={currentTool === tool ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => setCurrentTool(tool as any)}
                     className={`flex flex-col items-center p-3 h-auto transition-all duration-200 ${
@@ -1342,7 +1338,7 @@ export default function EventWhiteboardPage() {
                 ].map(({ tool, icon: Icon, label, color }) => (
                   <Button
                     key={tool}
-                    variant={currentTool === tool ? 'default' : 'outline'}
+                    variant={currentTool === tool ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => tool === 'image' ? fileInputRef.current?.click() : setCurrentTool(tool as any)}
                     className={`flex flex-col items-center p-3 h-auto transition-all duration-200 ${

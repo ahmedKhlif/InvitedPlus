@@ -2,9 +2,7 @@
 const nextConfig = {
   // Remove 'standalone' for Vercel deployment
   reactStrictMode: false,
-  experimental: {
-    appDir: true,
-  },
+  // Remove experimental.appDir as it's now stable in Next.js 15
   images: {
     domains: [
       'localhost',
@@ -27,7 +25,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  swcMinify: true,
+  // swcMinify is now default in Next.js 15
   webpack: (config, { isServer }) => {
     // Fix for Konva/canvas issues in browser
     if (!isServer) {

@@ -325,9 +325,9 @@ export default function EventDetailPage() {
                     {event.attendees.map((attendee) => (
                       <div key={attendee.id} className="flex items-center">
                         <div className="relative mr-3">
-                          {attendee.user.avatar ? (
+                          {(attendee.user as any).avatar ? (
                             <img
-                              src={`http://localhost:3001${attendee.user.avatar}`}
+                              src={`http://localhost:3001${(attendee.user as any).avatar}`}
                               alt={attendee.user.name}
                               className="w-8 h-8 rounded-full object-cover"
                             />

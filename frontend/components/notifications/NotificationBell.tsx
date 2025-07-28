@@ -78,7 +78,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
         page: 1,
         limit: 10
       });
-      setNotifications(response.notifications || response.data || []);
+      setNotifications(response.data || []);
     } catch (error) {
       console.error('Failed to load notifications:', error);
       setNotifications([]); // Set empty array on error
@@ -178,7 +178,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           onDeleteNotification={handleDeleteNotification}
           onRefresh={loadNotifications}
           onClose={() => setIsOpen(false)}
-          buttonRef={buttonRef}
+          buttonRef={buttonRef as any}
         />
       )}
     </div>

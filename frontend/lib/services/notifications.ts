@@ -106,11 +106,7 @@ export const notificationsService = {
       if (Array.isArray(data)) {
         // Direct array response
         return {
-          notifications: data,
-          total: data.length,
-          page: params?.page || 1,
-          limit: params?.limit || 10,
-          totalPages: Math.ceil(data.length / (params?.limit || 10)),
+          data: data,
           pagination: {
             page: params?.page || 1,
             pages: Math.ceil(data.length / (params?.limit || 10)),
@@ -125,11 +121,7 @@ export const notificationsService = {
       const pagination = data.pagination || {};
 
       return {
-        notifications,
-        total: pagination.total || data.total || notifications.length,
-        page: pagination.page || data.page || params?.page || 1,
-        limit: pagination.limit || data.limit || params?.limit || 10,
-        totalPages: pagination.pages || data.totalPages || Math.ceil((pagination.total || notifications.length) / (pagination.limit || 10)),
+        data: notifications,
         pagination: {
           page: pagination.page || data.page || params?.page || 1,
           pages: pagination.pages || data.totalPages || Math.ceil((pagination.total || notifications.length) / (pagination.limit || 10)),
@@ -146,11 +138,7 @@ export const notificationsService = {
       });
       // Return empty response if user is not authenticated or other error
       return {
-        notifications: [],
-        total: 0,
-        page: params?.page || 1,
-        limit: params?.limit || 10,
-        totalPages: 0,
+        data: [],
         pagination: {
           page: params?.page || 1,
           pages: 0,

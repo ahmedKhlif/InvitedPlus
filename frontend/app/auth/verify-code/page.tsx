@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { 
-  ShieldCheckIcon, 
-  CheckCircleIcon, 
+import {
+  ShieldCheckIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
   ArrowLeftIcon,
   ClockIcon
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 
-export default function VerifyCodePage() {
+function VerifyCodeForm() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -197,7 +197,9 @@ export default function VerifyCodePage() {
                     {code.map((digit, index) => (
                       <input
                         key={index}
-                        ref={(el) => (inputRefs.current[index] = el)}
+                        ref={(el) => {
+                          inputRefs.current[index] = el;
+                        }}
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]"
@@ -250,5 +252,13 @@ export default function VerifyCodePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function VerifyCodePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyCodeForm />
+    </Suspense>
   );
 }

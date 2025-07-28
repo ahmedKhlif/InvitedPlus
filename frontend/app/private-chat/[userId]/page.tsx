@@ -403,7 +403,7 @@ export default function PrivateChatPage() {
                             <span className="text-xs text-green-600">Online</span>
                           ) : (
                             <span className="text-xs text-gray-500">
-                              {getLastSeenText(message.sender.lastSeenAt)}
+                              {getLastSeenText((message.sender as any).lastSeenAt)}
                             </span>
                           )}
                         </div>
@@ -435,12 +435,8 @@ export default function PrivateChatPage() {
                                 id: message.sender.id,
                                 name: message.sender.name,
                                 email: message.sender.email,
-                                avatar: message.sender.avatar,
-                                isOnline: message.sender.isOnline,
-                                lastSeenAt: undefined,
                               },
                               event: undefined,
-                              reactions: message.reactions,
                             }}
                             isOwnMessage={isOwn}
                           />

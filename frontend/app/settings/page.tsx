@@ -129,20 +129,20 @@ export default function SettingsPage() {
         // Fetch user profile
         const profileResponse = await authService.getProfile();
         const userData = profileResponse.user;
-        setUser(userData);
+        setUser(userData as any);
 
         // Initialize form data
         setProfileForm({
           name: userData.name || '',
           email: userData.email || '',
-          bio: userData.bio || '',
-          phone: userData.phone || '',
-          timezone: userData.timezone || 'UTC',
+          bio: (userData as any).bio || '',
+          phone: (userData as any).phone || '',
+          timezone: (userData as any).timezone || 'UTC',
         });
 
         // Load user preferences if available
-        if (userData.preferences) {
-          const prefs = userData.preferences;
+        if ((userData as any).preferences) {
+          const prefs = (userData as any).preferences;
           if (prefs.notifications) {
             setNotifications({ ...notifications, ...prefs.notifications });
           }
@@ -405,7 +405,7 @@ export default function SettingsPage() {
                         value={profileForm.name}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Enter your full name"
-                        icon={UserIcon}
+                        leftIcon={<UserIcon className="h-5 w-5" />}
                         required
                       />
 
@@ -415,7 +415,7 @@ export default function SettingsPage() {
                         value={profileForm.email}
                         onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
                         placeholder="Enter your email"
-                        icon={EnvelopeIcon}
+                        leftIcon={<EnvelopeIcon className="h-5 w-5" />}
                         required
                       />
                     </div>

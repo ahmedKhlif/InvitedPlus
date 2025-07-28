@@ -56,10 +56,10 @@ export default function NotificationsPage() {
       const response = await notificationsService.getNotifications(params);
       
       if (reset) {
-        setNotifications(response.notifications || response.data || []);
+        setNotifications(response.data || []);
         setPage(1);
       } else {
-        setNotifications(prev => [...prev, ...(response.notifications || response.data || [])]);
+        setNotifications(prev => [...prev, ...(response.data || [])]);
       }
       
       setHasMore(response.pagination?.page < response.pagination?.pages);

@@ -128,7 +128,7 @@ export default function TestEmailPage() {
                 onBlur={() => validateEmail(email)}
                 error={emailError}
                 placeholder="Enter email to receive test message"
-                icon={EnvelopeIcon}
+                leftIcon={<EnvelopeIcon className="h-5 w-5" />}
                 required
               />
 

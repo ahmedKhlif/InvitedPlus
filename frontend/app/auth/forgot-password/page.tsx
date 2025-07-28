@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
                   onBlur={() => validateEmail(email)}
                   error={emailError}
                   placeholder="Enter your email address"
-                  icon={EnvelopeIcon}
+                  leftIcon={<EnvelopeIcon className="h-5 w-5" />}
                   required
                 />
 

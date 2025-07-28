@@ -434,7 +434,7 @@ export default function AdminUsersPage() {
                       value={newUser.name}
                       onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                       placeholder="Enter full name"
-                      icon={UserIcon}
+                      leftIcon={<UserIcon className="h-5 w-5" />}
                     />
 
                     <Input
@@ -444,7 +444,7 @@ export default function AdminUsersPage() {
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                       placeholder="Enter email address"
-                      icon={EnvelopeIcon}
+                      leftIcon={<EnvelopeIcon className="h-5 w-5" />}
                     />
 
                     <Input
