@@ -46,11 +46,7 @@
   "author": "Invited+ Team",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^24.1.0",
-    "@types/react": "^19.1.9",
-    "@types/react-dom": "^19.1.7",
-    "concurrently": "^8.2.2",
-    "typescript": "^5.8.3"
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0",
