@@ -22,16 +22,29 @@ async function bootstrap() {
     'https://localhost:3000',
   ];
 
-  // Add Vercel preview URLs pattern for production
-  if (process.env.NODE_ENV === 'production') {
-    allowedOrigins.push(/https:\/\/.*\.vercel\.app$/);
-    if (process.env.FRONTEND_URL) {
-      allowedOrigins.push(process.env.FRONTEND_URL);
-    }
+  // Add production frontend URL
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
   }
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, etc.)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Check if origin matches Vercel preview pattern
+      if (process.env.NODE_ENV === 'production' && /https:\/\/.*\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // Reject origin
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -66,7 +79,23 @@ async function bootstrap() {
   // Setup Socket.IO for real-time collaboration
   const io = new Server(server, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, etc.)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is in allowed list
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Check if origin matches Vercel preview pattern
+        if (process.env.NODE_ENV === 'production' && /https:\/\/.*\.vercel\.app$/.test(origin)) {
+          return callback(null, true);
+        }
+
+        // Reject origin
+        callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
       methods: ['GET', 'POST'],
     },
