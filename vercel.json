@@ -1,10 +1,9 @@
 {
-  "_comment": "Build configuration for frontend directory",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/.next",
   "installCommand": "cd frontend && npm install",
   "framework": "nextjs",
-  "regions": ["iad1"],
   "functions": {
     "frontend/app/**/*.js": {
       "maxDuration": 30
