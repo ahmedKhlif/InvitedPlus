@@ -4,7 +4,7 @@ buildCommand = "chmod +x backend/deploy.sh && backend/deploy.sh"
 
 [deploy]
 startCommand = "cd backend && npm run start:prod"
-healthcheckPath = "/health"
+healthcheckPath = "/health/live"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

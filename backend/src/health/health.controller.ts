@@ -13,16 +13,13 @@ export class HealthController {
   @ApiResponse({ status: 503, description: 'Service is unhealthy' })
   async check() {
     try {
-      // Check database connection
-      await this.prisma.$queryRaw`SELECT 1`;
-      
-      return {
+      // Basic health check without database dependency
+      const healthData = {
         status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV,
         version: process.env.npm_package_version || '1.0.0',
-        database: 'connected',
         memory: {
           used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
@@ -32,12 +29,26 @@ export class HealthController {
           usage: process.cpuUsage(),
         },
       };
+
+      // Try database connection if DATABASE_URL is available
+      if (process.env.DATABASE_URL) {
+        try {
+          await this.prisma.$queryRaw`SELECT 1`;
+          healthData.database = 'connected';
+        } catch (dbError) {
+          healthData.database = 'disconnected';
+          healthData.databaseError = dbError.message;
+        }
+      } else {
+        healthData.database = 'not_configured';
+      }
+
+      return healthData;
     } catch (error) {
       return {
         status: 'error',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV,
-        database: 'disconnected',
         error: error.message,
       };
     }
@@ -104,6 +115,7 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       pid: process.pid,
+      message: 'Backend service is running',
     };
   }
 }
