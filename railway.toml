@@ -1,0 +1,13 @@
+[build]
+builder = "nixpacks"
+buildCommand = "chmod +x backend/deploy.sh && backend/deploy.sh"
+
+[deploy]
+startCommand = "cd backend && npm run start:prod"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[environments.production]
+variables = { NODE_ENV = "production" }
