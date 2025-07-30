@@ -2,10 +2,11 @@
 nixPkgs = ["nodejs_18", "npm"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm ci --only=production"]
 
 [phases.build]
 cmds = [
+  "npm install --save-dev @nestjs/cli",
   "npx prisma generate",
   "npx nest build"
 ]

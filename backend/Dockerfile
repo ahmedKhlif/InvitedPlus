@@ -16,6 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Install dev dependencies needed for build
+RUN npm install --save-dev @nestjs/cli typescript
+
 # Generate Prisma client
 RUN npx prisma generate
 
