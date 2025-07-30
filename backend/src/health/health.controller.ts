@@ -14,7 +14,7 @@ export class HealthController {
   async check() {
     try {
       // Basic health check without database dependency
-      const healthData = {
+      const healthData: any = {
         status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
@@ -35,7 +35,7 @@ export class HealthController {
         try {
           await this.prisma.$queryRaw`SELECT 1`;
           healthData.database = 'connected';
-        } catch (dbError) {
+        } catch (dbError: any) {
           healthData.database = 'disconnected';
           healthData.databaseError = dbError.message;
         }
@@ -44,7 +44,7 @@ export class HealthController {
       }
 
       return healthData;
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         timestamp: new Date().toISOString(),
@@ -70,7 +70,7 @@ export class HealthController {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'error',
         database: 'disconnected',
@@ -97,7 +97,7 @@ export class HealthController {
           memory: process.memoryUsage().heapUsed < 500 * 1024 * 1024, // Less than 500MB
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'not ready',
         timestamp: new Date().toISOString(),
