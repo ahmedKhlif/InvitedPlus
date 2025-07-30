@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "chmod +x backend/deploy.sh && backend/deploy.sh"
+buildCommand = "cd backend && npm ci --only=production && npm install --save-dev @nestjs/cli typescript && npx prisma generate && npx nest build"
 
 [deploy]
 startCommand = "cd backend && npm run start:prod"
