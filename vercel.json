@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm ci --prefer-offline",
+  "installCommand": "npm install --prefer-offline --no-audit",
   "framework": "nextjs",
   "headers": [
     {
