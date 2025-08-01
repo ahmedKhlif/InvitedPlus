@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
+import { CloudinaryService } from '../common/services/cloudinary.service';
 import { JwtService } from './jwt.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   private generateVerificationCode(): string {
@@ -239,33 +241,13 @@ export class AuthService {
     }
 
     try {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      // Generate unique filename
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const filename = `avatar-${uniqueSuffix}.webp`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Process image: resize and convert to WebP
-      await sharp(file.buffer)
-        .resize(300, 300, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .webp({ quality: 85 })
-        .toFile(filepath);
-
-      // Generate URL for the avatar
-      const avatarUrl = `/uploads/avatars/${filename}`;
+      // Upload to Cloudinary
+      const uploadResult = await this.cloudinaryService.uploadAvatar(file);
 
       // Update user's avatar in database
       const updatedUser = await this.prismaService.user.update({
         where: { id: userId },
-        data: { avatar: avatarUrl },
+        data: { avatar: uploadResult.secure_url },
         select: {
           id: true,
           name: true,
@@ -282,7 +264,7 @@ export class AuthService {
         success: true,
         message: 'Avatar uploaded successfully',
         user: updatedUser,
-        avatarUrl,
+        avatarUrl: uploadResult.secure_url,
       };
     } catch (error) {
       console.error('Error uploading avatar:', error);

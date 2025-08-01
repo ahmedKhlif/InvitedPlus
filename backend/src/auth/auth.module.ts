@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
 import { EmailModule } from '../common/email/email.module';
+import { CloudinaryService } from '../common/services/cloudinary.service';
 import { PermissionsService } from './services/permissions.service';
 
 @Module({
@@ -27,7 +28,7 @@ import { PermissionsService } from './services/permissions.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, CustomJwtService, JwtStrategy, GoogleStrategy, GitHubStrategy, PermissionsService],
+  providers: [AuthService, CustomJwtService, JwtStrategy, GoogleStrategy, GitHubStrategy, CloudinaryService, PermissionsService],
   exports: [AuthService, CustomJwtService, JwtStrategy, PermissionsService],
 })
 export class AuthModule {}
