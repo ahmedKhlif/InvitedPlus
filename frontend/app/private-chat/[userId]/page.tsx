@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import MediaMessage from '@/components/chat/MediaMessage';
+import { websocketService } from '@/lib/websocket';
 import {
   ArrowLeftIcon,
   PaperAirplaneIcon,
@@ -70,9 +71,12 @@ export default function PrivateChatPage() {
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [popularEmojis, setPopularEmojis] = useState<string[]>(['👍', '❤️', '😂', '😮', '😢', '😡']);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const userId = params.userId as string;
 
@@ -86,6 +90,54 @@ export default function PrivateChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Generate conversation ID (consistent for both users)
+  const getConversationId = (user1Id: string, user2Id: string) => {
+    return [user1Id, user2Id].sort().join('_');
+  };
+
+  // WebSocket connection
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const initializeWebSocket = async () => {
+      try {
+        await websocketService.connect();
+        setIsConnected(true);
+
+        const conversationId = getConversationId(currentUser.id, userId);
+
+        // Join private chat room
+        websocketService.joinPrivateChat(conversationId);
+
+        // Set up event listeners
+        websocketService.onPrivateChatMessage((message) => {
+          setMessages(prev => [...prev, message]);
+          scrollToBottom();
+        });
+
+        websocketService.onPrivateChatTyping((data) => {
+          if (data.userId !== currentUser.id) {
+            setIsTyping(data.isTyping);
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to connect to WebSocket:', error);
+        setIsConnected(false);
+      }
+    };
+
+    initializeWebSocket();
+
+    return () => {
+      if (currentUser) {
+        const conversationId = getConversationId(currentUser.id, userId);
+        websocketService.leavePrivateChat(conversationId);
+      }
+      websocketService.disconnect();
+    };
+  }, [currentUser, userId]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -125,7 +177,7 @@ export default function PrivateChatPage() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || sending) return;
+    if (!newMessage.trim() || sending || !currentUser) return;
 
     setSending(true);
     try {
@@ -136,6 +188,12 @@ export default function PrivateChatPage() {
       });
 
       if (response.data.success) {
+        // Send via WebSocket for real-time delivery
+        if (isConnected) {
+          const conversationId = getConversationId(currentUser.id, userId);
+          websocketService.sendPrivateChatMessage(conversationId, response.data.message);
+        }
+
         setMessages(prev => [...prev, response.data.message]);
         setNewMessage('');
         if (!otherUser && response.data.message.receiver) {
@@ -154,6 +212,29 @@ export default function PrivateChatPage() {
     }
   };
 
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+
+    if (!currentUser || !isConnected) return;
+
+    const conversationId = getConversationId(currentUser.id, userId);
+
+    // Send typing indicator
+    websocketService.sendPrivateChatTyping(conversationId, value.length > 0);
+
+    // Clear typing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to stop typing indicator
+    if (value.length > 0) {
+      typingTimeoutRef.current = setTimeout(() => {
+        websocketService.sendPrivateChatTyping(conversationId, false);
+      }, 1000);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -165,6 +246,108 @@ export default function PrivateChatPage() {
       await fetchConversation();
     } catch (error) {
       console.error('Failed to add reaction:', error);
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const uploadResponse = await api.post('/private-chat/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (uploadResponse.data.success) {
+        const messageResponse = await api.post('/private-chat/send', {
+          receiverId: userId,
+          content: `Shared an image: ${file.name}`,
+          messageType: 'image',
+          fileUrl: uploadResponse.data.data.url,
+          fileName: file.name
+        });
+
+        if (messageResponse.data.success) {
+          setMessages(prev => [...prev, messageResponse.data.message]);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to upload image:', error);
+      showError('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleVoiceRecording = async (audioBlob: Blob, duration: number) => {
+    if (!currentUser) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('voice', new File([audioBlob], 'voice-message.webm', { type: 'audio/webm' }));
+
+      const uploadResponse = await api.post('/private-chat/upload/voice', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (uploadResponse.data.success) {
+        const messageResponse = await api.post('/private-chat/send', {
+          receiverId: userId,
+          content: 'Sent a voice message',
+          messageType: 'voice',
+          fileUrl: uploadResponse.data.data.url,
+          fileName: 'voice-message.webm'
+        });
+
+        if (messageResponse.data.success) {
+          setMessages(prev => [...prev, messageResponse.data.message]);
+        }
+      }
+      setShowVoiceRecorder(false);
+    } catch (error: any) {
+      console.error('Failed to upload voice message:', error);
+      showError('Failed to upload voice message');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResponse = await api.post('/private-chat/upload/file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (uploadResponse.data.success) {
+        const messageResponse = await api.post('/private-chat/send', {
+          receiverId: userId,
+          content: `Shared a file: ${file.name}`,
+          messageType: 'file',
+          fileUrl: uploadResponse.data.data.url,
+          fileName: file.name
+        });
+
+        if (messageResponse.data.success) {
+          setMessages(prev => [...prev, messageResponse.data.message]);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to upload file:', error);
+      showError('Failed to upload file');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -530,6 +713,18 @@ export default function PrivateChatPage() {
               })
             )}
             <div ref={messagesEndRef} />
+
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-500">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+                <span>{otherUser?.name || 'User'} is typing...</span>
+              </div>
+            )}
           </div>
 
           {/* Voice Recorder */}
@@ -576,7 +771,7 @@ export default function PrivateChatPage() {
               {/* Text Input */}
               <Input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => handleTyping(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
                 className="flex-1"

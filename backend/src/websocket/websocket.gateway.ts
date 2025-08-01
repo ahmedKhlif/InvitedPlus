@@ -191,7 +191,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @MessageBody() data: { eventId: string; message: string; messageId: string }
   ) {
     const room = `chat:${data.eventId}`;
-    
+
     // Broadcast message to all users in the chat room
     this.server.to(room).emit('chat:new_message', {
       id: data.messageId,
@@ -200,6 +200,55 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       userEmail: client.userEmail,
       eventId: data.eventId,
       timestamp: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('private_chat:join')
+  handleJoinPrivateChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string }
+  ) {
+    const room = `private_chat:${data.conversationId}`;
+    client.join(room);
+    console.log(`User ${client.userId} joined private chat room: ${room}`);
+  }
+
+  @SubscribeMessage('private_chat:leave')
+  handleLeavePrivateChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string }
+  ) {
+    const room = `private_chat:${data.conversationId}`;
+    client.leave(room);
+    console.log(`User ${client.userId} left private chat room: ${room}`);
+  }
+
+  @SubscribeMessage('private_chat:message')
+  handlePrivateChatMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string; message: any }
+  ) {
+    const room = `private_chat:${data.conversationId}`;
+
+    // Broadcast message to all users in the private chat room
+    this.server.to(room).emit('private_chat:new_message', {
+      ...data.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('private_chat:typing')
+  handlePrivateChatTyping(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: string; isTyping: boolean }
+  ) {
+    const room = `private_chat:${data.conversationId}`;
+
+    // Broadcast typing status to other users in the room
+    client.to(room).emit('private_chat:user_typing', {
+      userId: client.userId,
+      userEmail: client.userEmail,
+      isTyping: data.isTyping,
     });
   }
 

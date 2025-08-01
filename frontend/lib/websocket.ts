@@ -110,6 +110,31 @@ class WebSocketService {
     this.socket?.on('chat:user_left', callback);
   }
 
+  // Private Chat methods
+  joinPrivateChat(conversationId: string) {
+    this.socket?.emit('private_chat:join', { conversationId });
+  }
+
+  leavePrivateChat(conversationId: string) {
+    this.socket?.emit('private_chat:leave', { conversationId });
+  }
+
+  sendPrivateChatMessage(conversationId: string, message: any) {
+    this.socket?.emit('private_chat:message', { conversationId, message });
+  }
+
+  sendPrivateChatTyping(conversationId: string, isTyping: boolean) {
+    this.socket?.emit('private_chat:typing', { conversationId, isTyping });
+  }
+
+  onPrivateChatMessage(callback: (data: any) => void) {
+    this.socket?.on('private_chat:new_message', callback);
+  }
+
+  onPrivateChatTyping(callback: (data: any) => void) {
+    this.socket?.on('private_chat:user_typing', callback);
+  }
+
   // Poll methods
   joinPoll(pollId: string) {
     this.socket?.emit('poll:join', { pollId });
