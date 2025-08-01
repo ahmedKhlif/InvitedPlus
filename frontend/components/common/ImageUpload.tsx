@@ -38,7 +38,8 @@ export default function ImageUpload({
         formData.append('images', file);
       });
 
-      const response = await fetch(`http://localhost:3001/api/upload/images/${type}`, {
+      const API_BASE_URL = 'https://invitedplus-production.up.railway.app/api';
+      const response = await fetch(`${API_BASE_URL}/upload/images/${type}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -114,7 +115,7 @@ export default function ImageUpload({
             <div key={index} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                 <img
-                  src={`http://localhost:3001${image}`}
+                  src={`https://invitedplus-production.up.railway.app${image}`}
                   alt={`Upload ${index + 1}`}
                   className="w-full h-full object-cover"
                 />

@@ -170,7 +170,7 @@ export default function EventWhiteboardPage() {
       img.onerror = () => {
         reject(new Error('Failed to load avatar image'));
       };
-      img.src = `http://localhost:3001${avatarUrl}`;
+      img.src = `https://invitedplus-production.up.railway.app${avatarUrl}`;
     });
   }, [avatarImageCache]);
 
@@ -294,7 +294,7 @@ export default function EventWhiteboardPage() {
     // Get authentication token
     const token = localStorage.getItem('token');
 
-    const newSocket = io('http://localhost:3001', {
+    const newSocket = io('https://invitedplus-production.up.railway.app', {
       auth: {
         token: token
       },
@@ -701,7 +701,7 @@ export default function EventWhiteboardPage() {
       if (element.imageUrl.startsWith('blob:')) {
         img.src = element.imageUrl;
       } else if (element.imageUrl.startsWith('/uploads/')) {
-        img.src = `http://localhost:3001${element.imageUrl}`;
+        img.src = `https://invitedplus-production.up.railway.app${element.imageUrl}`;
       } else {
         img.src = element.imageUrl;
       }
@@ -1260,7 +1260,7 @@ export default function EventWhiteboardPage() {
                   >
                     {user.avatar ? (
                       <img
-                        src={`http://localhost:3001${user.avatar}`}
+                        src={`https://invitedplus-production.up.railway.app${user.avatar}`}
                         alt={user.name}
                         className="w-8 h-8 rounded-full object-cover border-2"
                         style={{ borderColor: user.color }}
@@ -1614,7 +1614,7 @@ export default function EventWhiteboardPage() {
                       <div className="relative w-10 h-10">
                         {currentUser?.avatar ? (
                           <img
-                            src={`http://localhost:3001${currentUser.avatar}`}
+                            src={`https://invitedplus-production.up.railway.app${currentUser.avatar}`}
                             alt={currentUser.name}
                             className="w-10 h-10 rounded-full object-cover border-2 border-white border-opacity-30"
                           />
@@ -1649,7 +1649,7 @@ export default function EventWhiteboardPage() {
                         <div className="relative w-10 h-10">
                           {user.avatar ? (
                             <img
-                              src={`http://localhost:3001${user.avatar}`}
+                              src={`https://invitedplus-production.up.railway.app${user.avatar}`}
                               alt={user.name}
                               className="w-10 h-10 rounded-full object-cover border-2"
                               style={{ borderColor: user.color }}

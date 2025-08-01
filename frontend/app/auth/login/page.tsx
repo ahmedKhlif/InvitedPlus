@@ -116,72 +116,15 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Demo Accounts */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-blue-800 flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Quick Demo Login
-              </h3>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEmail('organizer@invitedplus.com');
-                    setPassword('organizer123');
-                  }}
-                  disabled={loading}
-                  className="justify-between text-left h-auto py-2"
-                >
-                  <div>
-                    <div className="font-medium text-gray-900">Organizer Account</div>
-                    <div className="text-xs text-gray-500">organizer@invitedplus.com</div>
-                  </div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEmail('admin@invitedplus.com');
-                    setPassword('admin123');
-                  }}
-                  disabled={loading}
-                  className="justify-between text-left h-auto py-2"
-                >
-                  <div>
-                    <div className="font-medium text-gray-900">Admin Account</div>
-                    <div className="text-xs text-gray-500">admin@invitedplus.com</div>
-                  </div>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEmail('guest@invitedplus.com');
-                    setPassword('guest123');
-                  }}
-                  disabled={loading}
-                  className="justify-between text-left h-auto py-2"
-                >
-                  <div>
-                    <div className="font-medium text-gray-900">Guest Account</div>
-                    <div className="text-xs text-gray-500">guest@invitedplus.com</div>
-                  </div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                </Button>
-              </div>
-            </div>
+
+
 
             {/* OAuth Login Buttons */}
             <div className="space-y-3">
               <Button
                 variant="outline"
                 fullWidth
-                onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+                onClick={() => window.location.href = 'https://invitedplus-production.up.railway.app/api/auth/google'}
                 className="h-12 justify-center"
                 leftIcon={
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -198,7 +141,7 @@ function LoginForm() {
               <Button
                 variant="outline"
                 fullWidth
-                onClick={() => window.location.href = 'http://localhost:3001/api/auth/github'}
+                onClick={() => window.location.href = 'https://invitedplus-production.up.railway.app/api/auth/github'}
                 className="h-12 justify-center"
                 leftIcon={
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

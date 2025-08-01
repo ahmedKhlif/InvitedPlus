@@ -51,7 +51,7 @@ export default function ProfilePage() {
           name: response.user.name,
           email: response.user.email,
         });
-        setAvatarPreview(response.user.avatar ? `http://localhost:3001${response.user.avatar}` : '');
+        setAvatarPreview(response.user.avatar ? `https://invitedplus-production.up.railway.app${response.user.avatar}` : '');
       } catch (error) {
         console.error('Failed to fetch profile:', error);
         localStorage.removeItem('token');
@@ -102,7 +102,7 @@ export default function ProfilePage() {
 
       // Update user state and preview
       setUser(response.user);
-      setAvatarPreview(`http://localhost:3001${response.user.avatar}`);
+      setAvatarPreview(`https://invitedplus-production.up.railway.app${response.user.avatar}`);
 
       showSuccess('Success', 'Profile picture updated successfully');
     } catch (error) {
@@ -278,7 +278,7 @@ export default function ProfilePage() {
                 <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden">
                   {avatarPreview || user.avatar ? (
                     <img
-                      src={avatarPreview || `http://localhost:3001${user.avatar}`}
+                      src={avatarPreview || `https://invitedplus-production.up.railway.app${user.avatar}`}
                       alt={user.name}
                       className="w-24 h-24 rounded-full object-cover"
                     />
