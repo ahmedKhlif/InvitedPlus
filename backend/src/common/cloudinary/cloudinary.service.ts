@@ -8,13 +8,24 @@ export class CloudinaryService {
   private readonly uploadPreset: string;
 
   constructor(private readonly configService: ConfigService) {
+    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
+
+    console.log('🌤️ Cloudinary Configuration:');
+    console.log('Cloud Name:', cloudName ? '✅ Set' : '❌ Missing');
+    console.log('API Key:', apiKey ? '✅ Set' : '❌ Missing');
+    console.log('API Secret:', apiSecret ? '✅ Set' : '❌ Missing');
+
     cloudinary.config({
-      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
     });
 
     this.uploadPreset = this.configService.get<string>('CLOUDINARY_UPLOAD_PRESET') || 'invited-plus-uploads';
+    console.log('Upload Preset:', this.uploadPreset);
+    console.log('Cloudinary Configured:', this.isConfigured() ? '✅ Yes' : '❌ No');
   }
 
   async uploadFile(

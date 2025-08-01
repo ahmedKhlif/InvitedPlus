@@ -17,6 +17,8 @@ export class UploadService {
     private readonly cloudinaryService: CloudinaryService,
   ) {
     this.useCloudinary = this.cloudinaryService.isConfigured();
+    console.log('📤 UploadService initialized:');
+    console.log('Use Cloudinary:', this.useCloudinary ? '✅ Yes' : '❌ No (using local storage)');
     if (!this.useCloudinary) {
       this.ensureUploadDirectories();
     }

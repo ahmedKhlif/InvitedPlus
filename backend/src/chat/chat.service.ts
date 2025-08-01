@@ -334,8 +334,17 @@ export class ChatService {
     }
 
     try {
-      // Use the upload service to save the file
-      const uploadResult = await this.uploadService.uploadFile(file, `chat/${mediaType}s`);
+      let uploadResult: { url: string; filename: string };
+
+      // Use appropriate upload method based on media type
+      if (mediaType === 'image') {
+        const url = await this.uploadService.uploadSingleImage(file, 'chat-images');
+        uploadResult = { url, filename: file.originalname };
+      } else if (mediaType === 'voice') {
+        uploadResult = await this.uploadService.uploadAudio(file, 'chat-audio');
+      } else {
+        uploadResult = await this.uploadService.uploadFile(file, 'chat-files');
+      }
 
       return {
         success: true,
