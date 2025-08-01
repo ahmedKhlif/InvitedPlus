@@ -34,8 +34,35 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel, disabled 
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // First check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported');
+      }
+
+      console.log('Requesting microphone permission...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      console.log('Microphone permission granted, starting recording...');
+
+      // Try to use the best available codec
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ''; // Use default
+          }
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -64,9 +91,21 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel, disabled 
         setDuration(prev => prev + 1);
       }, 1000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing microphone:', error);
-      alert('Could not access microphone. Please check permissions.');
+
+      let errorMessage = 'Could not access microphone. ';
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Please allow microphone access in your browser settings and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No microphone found. Please check your audio devices.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage += 'Your browser does not support audio recording.';
+      } else {
+        errorMessage += 'Please check your browser permissions and try again.';
+      }
+
+      alert(errorMessage);
     }
   };
 
