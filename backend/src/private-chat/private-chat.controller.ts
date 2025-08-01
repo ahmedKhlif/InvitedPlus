@@ -182,15 +182,4 @@ export class PrivateChatController {
     return this.privateChatService.uploadChatMedia(file, 'file', userId);
   }
 
-  @Post('upload/file')
-  @ApiOperation({ summary: 'Upload file for private chat' })
-  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
-  ) {
-    const userId = req.user?.sub || req.user?.userId || req.user?.id;
-    return this.privateChatService.uploadChatMedia(file, 'file', userId);
-  }
 }
