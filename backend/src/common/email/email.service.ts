@@ -86,7 +86,7 @@ export class EmailService {
       return;
     }
 
-    const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
+    const appUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
     const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
 
     const mailOptions = {
@@ -133,7 +133,7 @@ export class EmailService {
       return;
     }
 
-    const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
+    const appUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
     const resetUrl = `${appUrl}/auth/reset-password?token=${token}`;
 
     const mailOptions = {
@@ -158,7 +158,7 @@ export class EmailService {
       return;
     }
 
-    const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
+    const appUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
     const inviteUrl = `${appUrl}/invite/${inviteCode}`;
 
     const mailOptions = {
@@ -183,7 +183,7 @@ export class EmailService {
       return;
     }
 
-    const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
+    const appUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
     const dashboardUrl = `${appUrl}/dashboard`;
 
     const mailOptions = {

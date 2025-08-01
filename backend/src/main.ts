@@ -17,9 +17,9 @@ async function bootstrap() {
 
   // Enable CORS for production and development
   const allowedOrigins = [
-    process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'http://localhost:3000',
-    'https://localhost:3000',
+    process.env.CORS_ORIGIN || 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
+    'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
+    'http://localhost:3000', // Keep for local development
   ];
 
   // Add production frontend URL
@@ -106,8 +106,8 @@ async function bootstrap() {
   // Initialize whiteboard collaboration service
   new WhiteboardCollaborationService(io);
 
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  console.log(`🚀 Application is running on: https://invitedplus-production.up.railway.app`);
+  console.log(`📚 API Documentation: https://invitedplus-production.up.railway.app/api/docs`);
   console.log(`🔗 Socket.IO server initialized for real-time collaboration`);
 }
 

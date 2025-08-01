@@ -19,7 +19,7 @@ interface AuthenticatedSocket extends Socket {
 @Injectable()
 @WSGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
     credentials: true,
   },
   namespace: '/',

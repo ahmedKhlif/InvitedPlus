@@ -493,7 +493,7 @@ export class PrivateChatService {
       fs.writeFileSync(filePath, file.buffer);
 
       // Generate URL that matches the static file serving
-      const fileUrl = `http://localhost:3001/uploads/private-chat/${type}s/${fileName}`;
+      const fileUrl = `https://invitedplus-production.up.railway.app/uploads/private-chat/${type}s/${fileName}`;
 
       return {
         success: true,
