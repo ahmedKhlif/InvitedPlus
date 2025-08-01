@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   description: 'A smart, collaborative, invite-only event & task management platform',
   keywords: ['event management', 'task management', 'collaboration', 'real-time'],
   authors: [{ name: 'Invited+ Team' }],
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export const viewport = {

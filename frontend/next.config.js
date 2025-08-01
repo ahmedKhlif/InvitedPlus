@@ -6,20 +6,18 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
-      'your-backend-domain.railway.app',
-      'your-domain.com',
+      'invitedplus-production.up.railway.app',
       'vercel.app',
-      '*.vercel.app'
+      'invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app'
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001',
-    NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api',
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'wss://invitedplus-production.up.railway.app',
+    NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
   },
   // Production optimizations for Vercel
   compress: true,
@@ -47,7 +45,32 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api'}/:path*`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';",
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
       },
     ];
   },
