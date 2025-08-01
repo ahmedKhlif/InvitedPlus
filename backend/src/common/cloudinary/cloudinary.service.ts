@@ -13,7 +13,7 @@ export class CloudinaryService {
     const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
 
     console.log('🌤️ Cloudinary Configuration:');
-    console.log('Cloud Name:', cloudName ? '✅ Set' : '❌ Missing');
+    console.log('Cloud Name:', cloudName ? `✅ Set (${cloudName})` : '❌ Missing');
     console.log('API Key:', apiKey ? '✅ Set' : '❌ Missing');
     console.log('API Secret:', apiSecret ? '✅ Set' : '❌ Missing');
 
