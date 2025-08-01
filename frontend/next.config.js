@@ -70,6 +70,10 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'Permissions-Policy',
+            value: 'microphone=*, camera=*, geolocation=*, autoplay=*',
+          },
 
         ],
       },
