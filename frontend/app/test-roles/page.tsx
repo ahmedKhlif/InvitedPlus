@@ -78,12 +78,13 @@ export default function TestRolesPage() {
     setLoading(true);
     addResult('🔍 Testing admin API access...');
 
+    const baseUrl = 'https://invitedplus-production.up.railway.app/api';
     const adminEndpoints = [
-      { name: 'Stats', url: 'http://localhost:3001/api/admin/stats' },
-      { name: 'Users', url: 'http://localhost:3001/api/admin/users' },
-      { name: 'Events', url: 'http://localhost:3001/api/admin/events' },
-      { name: 'Tasks', url: 'http://localhost:3001/api/admin/tasks' },
-      { name: 'Analytics', url: 'http://localhost:3001/api/admin/analytics' },
+      { name: 'Stats', url: `${baseUrl}/admin/stats` },
+      { name: 'Users', url: `${baseUrl}/admin/users` },
+      { name: 'Events', url: `${baseUrl}/admin/events` },
+      { name: 'Tasks', url: `${baseUrl}/admin/tasks` },
+      { name: 'Analytics', url: `${baseUrl}/admin/analytics` },
     ];
 
     for (const endpoint of adminEndpoints) {

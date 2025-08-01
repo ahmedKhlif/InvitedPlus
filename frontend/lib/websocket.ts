@@ -20,7 +20,7 @@ class WebSocketService {
         return;
       }
 
-      this.socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001', {
+      this.socket = io(process.env.NEXT_PUBLIC_WS_URL || 'https://invitedplus-production.up.railway.app', {
         auth: {
           token: token
         },

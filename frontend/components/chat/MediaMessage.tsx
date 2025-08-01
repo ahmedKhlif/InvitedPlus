@@ -18,7 +18,7 @@ const getFullMediaUrl = (mediaUrl: string): string => {
     const pathMatch = mediaUrl.match(/\/([^\/]+\/[^\/]+)$/);
     if (pathMatch) {
       const filePath = pathMatch[1];
-      const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace('/api', '');
+      const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api').replace('/api', '');
       const fullUrl = `${backendUrl}/uploads/${filePath}`;
       console.log('Generated corrected media URL:', fullUrl);
       return fullUrl;
@@ -30,7 +30,7 @@ const getFullMediaUrl = (mediaUrl: string): string => {
   }
 
   // Get backend server URL without /api since uploads are served directly
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace('/api', '');
+  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api').replace('/api', '');
   const fullUrl = `${backendUrl}${mediaUrl}`;
   console.log('Generated media URL:', fullUrl); // Debug logging
   return fullUrl;

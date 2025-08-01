@@ -50,25 +50,14 @@ export default function RecentActivity({ activities = [], limit = 10, showRefres
           return;
         }
 
-        // Use the role-based recent activity endpoint
+        // Use the role-based recent activity endpoint via auth service
         try {
-          const response = await fetch(`http://localhost:3001/api/auth/recent-activity?limit=${limit}`, {
-            headers: {
-              'Authorization': `Bearer ${authService.getToken()}`,
-              'Content-Type': 'application/json',
-            },
-          });
+          const data = await authService.getRecentActivity(limit);
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.activities) {
-              setRealActivities(data.activities);
-            } else {
-              setError('No recent activity found');
-            }
+          if (data.success && data.activities) {
+            setRealActivities(data.activities);
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            setError(errorData.message || 'Failed to load recent activity');
+            setError('No recent activity found');
           }
         } catch (error) {
           console.error('Error fetching recent activity:', error);
