@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,9 +10,16 @@ export class UploadService {
   private readonly uploadsDir = process.env.UPLOAD_PATH || path.join(process.cwd(), 'uploads');
   private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
   private readonly allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  private readonly useCloudinary: boolean;
 
-  constructor() {
-    this.ensureUploadDirectories();
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {
+    this.useCloudinary = this.cloudinaryService.isConfigured();
+    if (!this.useCloudinary) {
+      this.ensureUploadDirectories();
+    }
   }
 
   private ensureUploadDirectories() {
@@ -56,7 +65,63 @@ export class UploadService {
     }
 
     this.validateFile(file);
+
+    if (this.useCloudinary) {
+      const result = await this.cloudinaryService.uploadImage(file, type);
+      return result.url;
+    }
+
     return await this.processAndSaveImage(file, type);
+  }
+
+  async uploadAudio(file: Express.Multer.File, folder: string = 'audio'): Promise<{ url: string; filename: string }> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.startsWith('audio/')) {
+      throw new BadRequestException('File must be an audio file');
+    }
+
+    if (this.useCloudinary) {
+      const result = await this.cloudinaryService.uploadAudio(file, folder);
+      return { url: result.url, filename: result.filename };
+    }
+
+    // Fallback to local storage
+    const filename = `${Date.now()}-${file.originalname}`;
+    const filepath = path.join(this.uploadsDir, folder, filename);
+
+    await fs.promises.mkdir(path.dirname(filepath), { recursive: true });
+    await fs.promises.writeFile(filepath, file.buffer);
+
+    return { url: `/uploads/${folder}/${filename}`, filename };
+  }
+
+  async uploadFile(file: Express.Multer.File, folder: string = 'files'): Promise<{ url: string; filename: string }> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Validate file size (max 50MB for general files)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size too large (max 50MB)');
+    }
+
+    if (this.useCloudinary) {
+      const result = await this.cloudinaryService.uploadFile(file, folder);
+      return { url: result.url, filename: result.filename };
+    }
+
+    // Fallback to local storage
+    const filename = `${Date.now()}-${file.originalname}`;
+    const filepath = path.join(this.uploadsDir, folder, filename);
+
+    await fs.promises.mkdir(path.dirname(filepath), { recursive: true });
+    await fs.promises.writeFile(filepath, file.buffer);
+
+    return { url: `/uploads/${folder}/${filename}`, filename };
   }
 
   private validateFile(file: Express.Multer.File) {

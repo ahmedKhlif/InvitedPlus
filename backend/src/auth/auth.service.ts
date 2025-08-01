@@ -13,7 +13,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
-import { CloudinaryService } from '../common/services/cloudinary.service';
 import { JwtService } from './jwt.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 
@@ -24,7 +23,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   private generateVerificationCode(): string {
@@ -190,49 +188,106 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, updateProfileDto: any) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-    });
+    try {
+      console.log('Updating profile for user:', userId);
+      console.log('Update data:', updateProfileDto);
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Check if email is being changed and if it's already taken
-    if (updateProfileDto.email && updateProfileDto.email !== user.email) {
-      const existingUser = await this.prismaService.user.findUnique({
-        where: { email: updateProfileDto.email },
+      const user = await this.prismaService.user.findUnique({
+        where: { id: userId },
       });
 
-      if (existingUser) {
-        throw new ConflictException('Email already exists');
+      if (!user) {
+        throw new NotFoundException('User not found');
       }
+
+      // Validate and sanitize input data
+      const updateData: any = {};
+
+      if (updateProfileDto.name !== undefined) {
+        if (typeof updateProfileDto.name === 'string' && updateProfileDto.name.trim().length >= 2) {
+          updateData.name = updateProfileDto.name.trim();
+        } else if (updateProfileDto.name !== null) {
+          throw new BadRequestException('Name must be at least 2 characters long');
+        }
+      }
+
+      if (updateProfileDto.email !== undefined) {
+        if (updateProfileDto.email && updateProfileDto.email !== user.email) {
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(updateProfileDto.email)) {
+            throw new BadRequestException('Invalid email format');
+          }
+
+          const existingUser = await this.prismaService.user.findUnique({
+            where: { email: updateProfileDto.email },
+          });
+
+          if (existingUser) {
+            throw new ConflictException('Email already exists');
+          }
+
+          updateData.email = updateProfileDto.email.toLowerCase().trim();
+        }
+      }
+
+      if (updateProfileDto.avatar !== undefined) {
+        if (typeof updateProfileDto.avatar === 'string' || updateProfileDto.avatar === null) {
+          updateData.avatar = updateProfileDto.avatar;
+        }
+      }
+
+      // Only update if there's actual data to update
+      if (Object.keys(updateData).length === 0) {
+        return {
+          success: true,
+          message: 'No changes to update',
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            role: user.role,
+            isVerified: user.isVerified,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
+        };
+      }
+
+      const updatedUser = await this.prismaService.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          avatar: true,
+          isVerified: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      console.log('Profile updated successfully:', updatedUser);
+
+      return {
+        success: true,
+        message: 'Profile updated successfully',
+        user: updatedUser,
+      };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+
+      if (error instanceof BadRequestException ||
+          error instanceof ConflictException ||
+          error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new BadRequestException('Failed to update profile');
     }
-
-    const updatedUser = await this.prismaService.user.update({
-      where: { id: userId },
-      data: {
-        name: updateProfileDto.name,
-        avatar: updateProfileDto.avatar,
-        email: updateProfileDto.email,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        avatar: true,
-        isVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    return {
-      success: true,
-      message: 'Profile updated successfully',
-      user: updatedUser,
-    };
   }
 
   async uploadAvatar(userId: string, file: any) {
@@ -241,13 +296,33 @@ export class AuthService {
     }
 
     try {
-      // Upload to Cloudinary
-      const uploadResult = await this.cloudinaryService.uploadAvatar(file);
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const filename = `avatar-${uniqueSuffix}.webp`;
+      const filepath = path.join(uploadsDir, filename);
+
+      // Process image: resize and convert to WebP
+      await sharp(file.buffer)
+        .resize(300, 300, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .webp({ quality: 85 })
+        .toFile(filepath);
+
+      // Generate URL for the avatar
+      const avatarUrl = `/uploads/avatars/${filename}`;
 
       // Update user's avatar in database
       const updatedUser = await this.prismaService.user.update({
         where: { id: userId },
-        data: { avatar: uploadResult.secure_url },
+        data: { avatar: avatarUrl },
         select: {
           id: true,
           name: true,
@@ -264,7 +339,7 @@ export class AuthService {
         success: true,
         message: 'Avatar uploaded successfully',
         user: updatedUser,
-        avatarUrl: uploadResult.secure_url,
+        avatarUrl,
       };
     } catch (error) {
       console.error('Error uploading avatar:', error);

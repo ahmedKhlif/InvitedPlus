@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { FriendsService } from '../friends/friends.service';
+import { UploadService } from '../common/upload/upload.service';
 
 @Injectable()
 export class PrivateChatService {
   constructor(
     private prisma: PrismaService,
-    private friendsService: FriendsService
+    private friendsService: FriendsService,
+    private uploadService: UploadService,
   ) {}
 
   async sendMessage(senderId: string, receiverId: string, content: string, messageType: string = 'text', fileUrl?: string, fileName?: string) {
@@ -472,33 +474,21 @@ export class PrivateChatService {
     }
 
     try {
-      // Use the same file saving logic as the main upload service
-      const fs = require('fs');
-      const path = require('path');
+      let result: { url: string; filename: string };
 
-      // Create upload directory if it doesn't exist
-      const uploadDir = path.join(process.cwd(), 'uploads', 'private-chat', `${type}s`);
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+      if (type === 'image') {
+        const url = await this.uploadService.uploadSingleImage(file, 'avatars');
+        result = { url, filename: file.originalname };
+      } else if (type === 'voice') {
+        result = await this.uploadService.uploadAudio(file, 'private-chat-audio');
+      } else {
+        result = await this.uploadService.uploadFile(file, 'private-chat-files');
       }
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(2, 15);
-      const fileExtension = file.originalname.split('.').pop();
-      const fileName = `${timestamp}-${randomString}.${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
-
-      // Save file to disk
-      fs.writeFileSync(filePath, file.buffer);
-
-      // Generate URL that matches the static file serving
-      const fileUrl = `https://invitedplus-production.up.railway.app/uploads/private-chat/${type}s/${fileName}`;
 
       return {
         success: true,
-        fileUrl,
-        fileName: file.originalname,
+        fileUrl: result.url,
+        fileName: result.filename,
         fileSize: file.size,
         mimeType: file.mimetype,
         type
