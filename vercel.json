@@ -1,8 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install --prefer-offline --no-audit",
+  "installCommand": "npm install",
   "framework": "nextjs",
+  "rootDirectory": "frontend",
   "headers": [
     {
       "source": "/(.*)",
