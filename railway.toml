@@ -10,4 +10,9 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [environments.production]
-variables = { NODE_ENV = "production" }
+variables = { NODE_ENV = "production", UPLOAD_PATH = "/app/uploads" }
+
+# Railway volume for persistent file storage
+[[volumes]]
+name = "uploads"
+mountPath = "/app/uploads"

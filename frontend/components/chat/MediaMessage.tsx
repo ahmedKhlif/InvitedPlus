@@ -3,38 +3,14 @@
 import { useState, useRef } from 'react';
 import { PlayIcon, PauseIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { ChatMessage } from '@/lib/services/chat';
+import { getFullMediaUrl, getFileName } from '@/lib/utils/media';
 
 interface MediaMessageProps {
   message: ChatMessage;
   isOwnMessage: boolean;
 }
 
-// Helper function to get full media URL
-const getFullMediaUrl = (mediaUrl: string): string => {
-  // Check if it's a placeholder URL that needs to be replaced
-  if (mediaUrl.includes('your-storage-domain.com')) {
-    console.warn('Placeholder URL detected, replacing with localhost:', mediaUrl);
-    // Extract the file path from the placeholder URL
-    const pathMatch = mediaUrl.match(/\/([^\/]+\/[^\/]+)$/);
-    if (pathMatch) {
-      const filePath = pathMatch[1];
-      const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api').replace('/api', '');
-      const fullUrl = `${backendUrl}/uploads/${filePath}`;
-      console.log('Generated corrected media URL:', fullUrl);
-      return fullUrl;
-    }
-  }
-
-  if (mediaUrl.startsWith('http')) {
-    return mediaUrl; // Already a full URL
-  }
-
-  // Get backend server URL without /api since uploads are served directly
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api').replace('/api', '');
-  const fullUrl = `${backendUrl}${mediaUrl}`;
-  console.log('Generated media URL:', fullUrl); // Debug logging
-  return fullUrl;
-};
+// Using imported getFullMediaUrl from utils
 
 export default function MediaMessage({ message, isOwnMessage }: MediaMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -87,11 +63,7 @@ export default function MediaMessage({ message, isOwnMessage }: MediaMessageProp
     return <DocumentIcon className="h-8 w-8" />;
   };
 
-  const getFileName = (url?: string) => {
-    if (!url) return 'Unknown file';
-    const parts = url.split('/');
-    return parts[parts.length - 1] || 'Unknown file';
-  };
+  // Using imported getFileName from utils
 
   if (message.type === 'IMAGE' && message.mediaUrl) {
     const fullImageUrl = getFullMediaUrl(message.mediaUrl);

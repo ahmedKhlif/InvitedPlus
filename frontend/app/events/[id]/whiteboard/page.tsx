@@ -170,7 +170,7 @@ export default function EventWhiteboardPage() {
       img.onerror = () => {
         reject(new Error('Failed to load avatar image'));
       };
-      img.src = `https://invitedplus-production.up.railway.app${avatarUrl}`;
+      img.src = avatarUrl.startsWith('http') ? avatarUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus-production.up.railway.app'}${avatarUrl}`;
     });
   }, [avatarImageCache]);
 
@@ -701,7 +701,7 @@ export default function EventWhiteboardPage() {
       if (element.imageUrl.startsWith('blob:')) {
         img.src = element.imageUrl;
       } else if (element.imageUrl.startsWith('/uploads/')) {
-        img.src = `https://invitedplus-production.up.railway.app${element.imageUrl}`;
+        img.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus-production.up.railway.app'}${element.imageUrl}`;
       } else {
         img.src = element.imageUrl;
       }

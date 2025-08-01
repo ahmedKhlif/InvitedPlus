@@ -10,8 +10,9 @@ import WhiteboardCollaborationService from './services/whiteboard-collaboration.
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Serve static files
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  // Serve static files from uploads directory
+  const uploadsPath = process.env.UPLOAD_PATH || join(__dirname, '..', 'uploads');
+  app.useStaticAssets(uploadsPath, {
     prefix: '/uploads/',
   });
 

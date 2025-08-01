@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { getFullMediaUrl } from '@/lib/utils/media';
 
 interface ImageGalleryProps {
   images: string[];
@@ -57,7 +58,7 @@ export default function ImageGallery({ images, title, className = '' }: ImageGal
           // Single image - full width
           <div className="relative">
             <img
-              src={`https://invitedplus-production.up.railway.app${images[0]}`}
+              src={getFullMediaUrl(images[0])}
               alt="Image"
               className="w-full h-64 md:h-80 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => openLightbox(0)}
@@ -69,7 +70,7 @@ export default function ImageGallery({ images, title, className = '' }: ImageGal
             {images.map((image, index) => (
               <div key={index} className="relative group">
                 <img
-                  src={`https://invitedplus-production.up.railway.app${image}`}
+                  src={getFullMediaUrl(image)}
                   alt={`Image ${index + 1}`}
                   className="w-full h-32 md:h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => openLightbox(index)}
@@ -134,7 +135,7 @@ export default function ImageGallery({ images, title, className = '' }: ImageGal
 
             {/* Image */}
             <img
-              src={`https://invitedplus-production.up.railway.app${images[selectedImage]}`}
+              src={getFullMediaUrl(images[selectedImage])}
               alt={`Image ${selectedImage + 1}`}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}

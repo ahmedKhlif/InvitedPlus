@@ -5,7 +5,7 @@ import * as path from 'path';
 
 @Injectable()
 export class UploadService {
-  private readonly uploadsDir = path.join(process.cwd(), 'uploads');
+  private readonly uploadsDir = process.env.UPLOAD_PATH || path.join(process.cwd(), 'uploads');
   private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
   private readonly allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 

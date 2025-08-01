@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { PhotoIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { getFullMediaUrl, getApiBaseUrl } from '@/lib/utils/media';
 
 interface ImageUploadProps {
   images: string[];
@@ -38,7 +39,7 @@ export default function ImageUpload({
         formData.append('images', file);
       });
 
-      const API_BASE_URL = 'https://invitedplus-production.up.railway.app/api';
+      const API_BASE_URL = getApiBaseUrl();
       const response = await fetch(`${API_BASE_URL}/upload/images/${type}`, {
         method: 'POST',
         headers: {
@@ -115,7 +116,7 @@ export default function ImageUpload({
             <div key={index} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                 <img
-                  src={`https://invitedplus-production.up.railway.app${image}`}
+                  src={getFullMediaUrl(image)}
                   alt={`Upload ${index + 1}`}
                   className="w-full h-full object-cover"
                 />

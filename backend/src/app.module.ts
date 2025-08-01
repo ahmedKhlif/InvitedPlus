@@ -37,7 +37,7 @@ import { HealthModule } from './health/health.module';
 
     // Static file serving for uploads
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: process.env.UPLOAD_PATH || join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
     
