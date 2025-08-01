@@ -56,7 +56,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: https:; script-src-elem 'self' 'unsafe-inline' blob: data: https:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app http://localhost:3001 ws://localhost:3001 blob: data:; font-src 'self' data: blob:; object-src 'self' blob: data:; base-uri 'self'; form-action 'self'; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:;",
+            value: "default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: https:; script-src-elem 'self' 'unsafe-inline' blob: data: https:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https: 'unsafe-inline'; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app http://localhost:3001 ws://localhost:3001 blob: data:; font-src 'self' data: blob:; object-src 'self' blob: data:; base-uri 'self'; form-action 'self'; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:;",
           },
           {
             key: 'X-Frame-Options',
@@ -70,14 +70,7 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-          {
-            key: 'Permissions-Policy',
-            value: 'microphone=(self), camera=(self), geolocation=(self), autoplay=(self)',
-          },
-          {
-            key: 'Feature-Policy',
-            value: 'microphone *; camera *; geolocation *; autoplay *',
-          },
+
         ],
       },
     ];

@@ -18,9 +18,7 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
-  other: {
-    'permissions-policy': 'microphone=(self), camera=(self), geolocation=(self), autoplay=(self)',
-  },
+
 };
 
 export const viewport = {
@@ -35,9 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-      <head>
-        <meta name="permissions-policy" content="microphone=(self), camera=(self), geolocation=(self), autoplay=(self)" />
-      </head>
+
       <body className={inter.className} suppressHydrationWarning={true}>
         <ToastProvider>
           <NotificationProvider>
