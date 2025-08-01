@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as sharp from 'sharp';
+import { UploadService } from '../common/upload/upload.service';
 
 @Injectable()
 export class WhiteboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private uploadService: UploadService,
+  ) {}
 
   async getEventWhiteboard(eventId: string, userId: string) {
     // Verify user has access to the event
@@ -439,29 +440,8 @@ export class WhiteboardService {
     await this.verifyEventAccess(eventId, userId);
 
     try {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'whiteboard');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      // Generate unique filename
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const fileExtension = path.extname(file.originalname);
-      const filename = `whiteboard-${eventId}-${uniqueSuffix}.webp`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Process image: resize and convert to WebP for better performance
-      await sharp(file.buffer)
-        .resize(800, 600, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .webp({ quality: 85 })
-        .toFile(filepath);
-
-      // Generate URL for the image
-      const imageUrl = `/uploads/whiteboard/${filename}`;
+      // Use the upload service to save the image to Cloudinary
+      const imageUrl = await this.uploadService.uploadSingleImage(file, 'events');
 
       return {
         success: true,

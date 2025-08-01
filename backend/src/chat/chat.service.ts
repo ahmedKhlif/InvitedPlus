@@ -338,7 +338,7 @@ export class ChatService {
 
       // Use appropriate upload method based on media type
       if (mediaType === 'image') {
-        const url = await this.uploadService.uploadSingleImage(file, 'chat-images');
+        const url = await this.uploadService.uploadSingleImage(file, 'events');
         uploadResult = { url, filename: file.originalname };
       } else if (mediaType === 'voice') {
         uploadResult = await this.uploadService.uploadAudio(file, 'chat-audio');
