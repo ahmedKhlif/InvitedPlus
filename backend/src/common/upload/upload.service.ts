@@ -67,7 +67,7 @@ export class UploadService {
     this.validateFile(file);
 
     if (this.useCloudinary) {
-      const result = await this.cloudinaryService.uploadImage(file, type);
+      const result = await this.cloudinaryService.uploadImage(file);
       return result.url;
     }
 
@@ -84,7 +84,7 @@ export class UploadService {
     }
 
     if (this.useCloudinary) {
-      const result = await this.cloudinaryService.uploadAudio(file, folder);
+      const result = await this.cloudinaryService.uploadAudio(file);
       return { url: result.url, filename: result.filename };
     }
 
@@ -110,7 +110,7 @@ export class UploadService {
     }
 
     if (this.useCloudinary) {
-      const result = await this.cloudinaryService.uploadFile(file, folder);
+      const result = await this.cloudinaryService.uploadFile(file);
       return { url: result.url, filename: result.filename };
     }
 

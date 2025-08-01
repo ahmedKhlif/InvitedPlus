@@ -20,6 +20,18 @@ This guide will help you set up persistent file storage and resolve all critical
    - API Key
    - API Secret
 
+### Create Upload Preset
+1. Go to Settings → Upload → Upload presets
+2. Click "Add upload preset"
+3. Configure with these settings:
+   - **Upload preset name**: `invited-plus-uploads`
+   - **Signing mode**: `Unsigned`
+   - **Asset folder**: `invited-plus`
+   - **Overwrite assets**: ✅ Enabled
+   - **Generated public ID**: Auto-generate unguessable
+   - **Use filename as public ID**: ❌ Disabled
+4. Click "Save"
+
 ### Configure Cloudinary
 Your Cloudinary will automatically:
 - ✅ Store files permanently (no more disappearing uploads)
@@ -44,6 +56,7 @@ cd backend
 railway variables set CLOUDINARY_CLOUD_NAME="your-cloud-name"
 railway variables set CLOUDINARY_API_KEY="your-api-key"
 railway variables set CLOUDINARY_API_SECRET="your-api-secret"
+railway variables set CLOUDINARY_UPLOAD_PRESET="invited-plus-uploads"
 
 # Set other required variables
 railway variables set JWT_SECRET="your-super-secret-jwt-key"

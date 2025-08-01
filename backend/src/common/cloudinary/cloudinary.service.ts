@@ -5,25 +5,30 @@ import * as sharp from 'sharp';
 
 @Injectable()
 export class CloudinaryService {
+  private readonly uploadPreset: string;
+
   constructor(private readonly configService: ConfigService) {
     cloudinary.config({
       cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
       api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
       api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
     });
+
+    this.uploadPreset = this.configService.get<string>('CLOUDINARY_UPLOAD_PRESET') || 'invited-plus-uploads';
   }
 
   async uploadFile(
     file: Express.Multer.File,
-    folder: string = 'uploads',
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder,
+            upload_preset: this.uploadPreset,
             resource_type: 'auto',
+            // Don't specify folder - preset handles organization with public_id_prefix
+            // Don't specify use_filename/unique_filename - preset handles this
             ...options,
           },
           (error, result) => {
@@ -49,7 +54,6 @@ export class CloudinaryService {
 
   async uploadImage(
     file: Express.Multer.File,
-    folder: string = 'images',
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
@@ -74,11 +78,12 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder,
+            upload_preset: this.uploadPreset,
             resource_type: 'image',
             format: 'webp',
             quality: 'auto:good',
             fetch_format: 'auto',
+            // Preset handles: use_filename, unique_filename, overwrite, folder organization
             ...options,
           },
           (error, result) => {
@@ -104,7 +109,6 @@ export class CloudinaryService {
 
   async uploadAudio(
     file: Express.Multer.File,
-    folder: string = 'audio',
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
@@ -116,8 +120,9 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder,
+            upload_preset: this.uploadPreset,
             resource_type: 'video', // Cloudinary uses 'video' for audio files
+            // Preset handles: use_filename, unique_filename, overwrite, folder organization
             ...options,
           },
           (error, result) => {
