@@ -45,6 +45,13 @@ export default function AdminUsersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editUserData, setEditUserData] = useState({
+    name: '',
+    email: '',
+    role: 'GUEST',
+    isVerified: false
+  });
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -144,11 +151,37 @@ export default function AdminUsersPage() {
 
   const handleToggleVerification = async (userId: string, isVerified: boolean) => {
     try {
-      await api.put(`/admin/users/${userId}/verification`, { isVerified: !isVerified });
+      await api.patch(`/admin/users/${userId}`, { isVerified: !isVerified });
       showSuccess(`User ${!isVerified ? 'verified' : 'unverified'} successfully!`);
       fetchUsers();
     } catch (error: any) {
       showError(error.response?.data?.message || 'Failed to update verification status');
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditUserData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      await api.patch(`/admin/users/${editingUser.id}`, editUserData);
+      showSuccess('User updated successfully!');
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Failed to update user');
     }
   };
 
@@ -366,6 +399,15 @@ export default function AdminUsersPage() {
                           </select>
 
                           <Button
+                            onClick={() => handleEditUser(user)}
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700 border-blue-300 hover:border-blue-400"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+
+                          <Button
                             onClick={() => handleToggleVerification(user.id, user.isVerified)}
                             variant="outline"
                             size="sm"
@@ -462,6 +504,109 @@ export default function AdminUsersPage() {
                         className="flex-1"
                       >
                         Create User
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditModal && editingUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Edit User</CardTitle>
+                  <CardDescription>
+                    Update user information and settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleUpdateUser} className="space-y-4">
+                    <div>
+                      <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Name
+                      </label>
+                      <Input
+                        id="edit-name"
+                        type="text"
+                        value={editUserData.name}
+                        onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <Input
+                        id="edit-email"
+                        type="email"
+                        value={editUserData.email}
+                        onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700 mb-1">
+                        Role
+                      </label>
+                      <select
+                        id="edit-role"
+                        value={editUserData.role}
+                        onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="GUEST">Guest</option>
+                        <option value="ORGANIZER">Organizer</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        id="edit-verified"
+                        type="checkbox"
+                        checked={editUserData.isVerified}
+                        onChange={(e) => setEditUserData({ ...editUserData, isVerified: e.target.checked })}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="edit-verified" className="ml-2 block text-sm text-gray-900">
+                        Email Verified
+                      </label>
+                    </div>
+
+                    {editingUser.provider && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>OAuth User:</strong> This user signed up via {editingUser.provider}.
+                          Password changes are not available for OAuth users.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex space-x-3 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowEditModal(false);
+                          setEditingUser(null);
+                        }}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="flex-1"
+                      >
+                        Update User
                       </Button>
                     </div>
                   </form>
