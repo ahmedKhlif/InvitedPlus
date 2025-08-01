@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api';
+// Force production API URL for now
+const API_BASE_URL = 'https://invitedplus-production.up.railway.app/api';
+
+console.log('API_BASE_URL:', API_BASE_URL);
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

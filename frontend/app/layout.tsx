@@ -12,7 +12,9 @@ export const metadata: Metadata = {
   keywords: ['event management', 'task management', 'collaboration', 'real-time'],
   authors: [{ name: 'Invited+ Team' }],
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },

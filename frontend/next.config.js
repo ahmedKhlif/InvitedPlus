@@ -56,7 +56,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; script-src-elem 'self' 'unsafe-inline' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
           {
             key: 'X-Frame-Options',
