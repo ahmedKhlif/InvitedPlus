@@ -5,7 +5,11 @@
       "headers": [
         {
           "key": "Permissions-Policy",
-          "value": "microphone=*, camera=*, geolocation=*, autoplay=*"
+          "value": "microphone=(self \"https://invited-plus.vercel.app\"), camera=(self \"https://invited-plus.vercel.app\"), geolocation=(self \"https://invited-plus.vercel.app\"), autoplay=*, fullscreen=*, payment=*"
+        },
+        {
+          "key": "Feature-Policy",
+          "value": "microphone *; camera *; geolocation *; autoplay *; fullscreen *; payment *"
         }
       ]
     }
