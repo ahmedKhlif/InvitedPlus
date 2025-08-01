@@ -8,7 +8,7 @@ const nextConfig = {
       'localhost',
       'invitedplus-production.up.railway.app',
       'vercel.app',
-      'invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app'
+      'invited-plus.vercel.app'
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
@@ -17,7 +17,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api',
     NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'wss://invitedplus-production.up.railway.app',
-    NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
+    NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://invited-plus.vercel.app',
   },
   // Production optimizations for Vercel
   compress: true,

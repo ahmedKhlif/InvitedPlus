@@ -17,8 +17,8 @@ async function bootstrap() {
 
   // Enable CORS for production and development
   const allowedOrigins = [
-    process.env.CORS_ORIGIN || 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
-    'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app',
+    process.env.CORS_ORIGIN || 'https://invited-plus.vercel.app',
+    'https://invited-plus.vercel.app',
     'http://localhost:3000', // Keep for local development
   ];
 

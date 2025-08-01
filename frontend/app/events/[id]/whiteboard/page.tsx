@@ -294,7 +294,7 @@ export default function EventWhiteboardPage() {
     // Get authentication token
     const token = localStorage.getItem('token');
 
-    const newSocket = io('https://invitedplus-production.up.railway.app', {
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://invitedplus-production.up.railway.app', {
       auth: {
         token: token
       },

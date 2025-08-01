@@ -264,13 +264,13 @@ export class AuthController {
     try {
       // Get user data from OAuth
       const { user, accessToken, refreshToken } = req.user;
-      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
+      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus.vercel.app');
 
       // Redirect to frontend with tokens
       const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
       return res.redirect(redirectUrl);
     } catch (error) {
-      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
+      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus.vercel.app');
       return res.redirect(`${frontendUrl}/auth/callback?error=google_auth_failed`);
     }
   }
@@ -291,13 +291,13 @@ export class AuthController {
     try {
       // Get user data from OAuth
       const { user, accessToken, refreshToken } = req.user;
-      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
+      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus.vercel.app');
 
       // Redirect to frontend with tokens
       const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`;
       return res.redirect(redirectUrl);
     } catch (error) {
-      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus-2aeamn7kp-ahmed-khlifs-projects.vercel.app');
+      const frontendUrl = this.configService.get<string>('APP_URL', 'https://invited-plus.vercel.app');
       return res.redirect(`${frontendUrl}/auth/callback?error=github_auth_failed`);
     }
   }
