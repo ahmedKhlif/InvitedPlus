@@ -2,7 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, BadRequestException 
 import { PrismaService } from '../common/prisma/prisma.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MessageType, NotificationType } from '@prisma/client';
-import { UploadService } from '../upload/upload.service';
+import { UploadService } from '../common/upload/upload.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import * as path from 'path';
 import * as fs from 'fs/promises';
