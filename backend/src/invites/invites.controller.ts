@@ -59,6 +59,18 @@ export class InvitesController {
     return this.secureInvitesService.verifyInvitationToken(token);
   }
 
+  @Get('secure/:token')
+  @ApiOperation({ summary: 'Get event by secure invitation token' })
+  @ApiResponse({ status: 200, description: 'Event retrieved successfully' })
+  async getEventBySecureToken(@Param('token') token: string) {
+    const verification = await this.secureInvitesService.verifyInvitationToken(token);
+    return {
+      success: true,
+      event: verification.invitation.event,
+      invitation: verification.invitation
+    };
+  }
+
   @Post('secure/:token/accept')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

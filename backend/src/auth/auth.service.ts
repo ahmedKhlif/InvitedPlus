@@ -571,13 +571,17 @@ export class AuthService {
         },
       });
     } else {
-      // Create new user
+      // Create new user with a placeholder password for OAuth users
+      const placeholderPassword = await bcrypt.hash(`oauth_${Date.now()}`, 12);
       user = await this.prismaService.user.create({
         data: {
           email,
           name,
           avatar,
-          password: '', // OAuth users don't have passwords
+          password: placeholderPassword, // OAuth users get a secure placeholder password
+          provider,
+          googleId,
+          githubId,
           isVerified: true,
           role: 'GUEST',
         },

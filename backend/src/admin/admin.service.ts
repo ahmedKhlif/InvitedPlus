@@ -161,9 +161,14 @@ export class AdminService {
 
     const updateData: any = { ...updateUserDto };
 
-    // Hash password if provided
+    // Hash password if provided (only for non-OAuth users or when explicitly setting password)
     if (updateUserDto.password) {
       updateData.password = await bcrypt.hash(updateUserDto.password, 12);
+    }
+
+    // Don't update password field if user is OAuth user and no password provided
+    if (!updateUserDto.password && (user.provider === 'google' || user.provider === 'github')) {
+      delete updateData.password;
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -175,6 +180,7 @@ export class AdminService {
         email: true,
         role: true,
         isVerified: true,
+        provider: true,
         updatedAt: true,
       },
     });

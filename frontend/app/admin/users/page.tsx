@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      await api.put(`/admin/users/${userId}/role`, { role: newRole });
+      await api.patch(`/admin/users/${userId}/role`, { role: newRole });
       showSuccess('User role updated successfully!');
       fetchUsers();
     } catch (error: any) {
@@ -152,28 +152,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/role`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authService.getToken()}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (response.ok) {
-        fetchUsers();
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to update role');
-      }
-    } catch (error) {
-      console.error('Failed to update role:', error);
-      alert('Failed to update role');
-    }
-  };
+  // Remove duplicate - using handleUpdateUserRole instead
 
   if (loading) {
     return (
