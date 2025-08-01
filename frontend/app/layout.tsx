@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
+  other: {
+    'permissions-policy': 'microphone=*, camera=*, geolocation=*, autoplay=*',
+  },
 };
 
 export const viewport = {
