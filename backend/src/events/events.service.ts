@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
 import { UploadService } from '../common/upload/upload.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateEventDto, UpdateEventDto, EventQueryDto } from './dto/event.dto';
 import { EventStatus } from '@prisma/client';
+import { WebSocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class EventsService {
@@ -15,6 +16,8 @@ export class EventsService {
     private emailService: EmailService,
     private uploadService: UploadService,
     private notificationsService: NotificationsService,
+    @Inject(forwardRef(() => WebSocketGateway))
+    private webSocketGateway: WebSocketGateway,
   ) {}
 
   async create(createEventDto: CreateEventDto, userId: string) {
@@ -620,6 +623,122 @@ export class EventsService {
     return {
       success: true,
       message: 'Successfully left the event',
+    };
+  }
+
+  async kickUserFromEvent(eventId: string, participantId: string, organizerId: string) {
+    // First, verify that the requester is the event organizer
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        title: true,
+        organizerId: true,
+        organizer: {
+          select: { name: true, role: true }
+        }
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    // Check if the requester is the event organizer or an admin
+    const organizer = await this.prisma.user.findUnique({
+      where: { id: organizerId },
+      select: { role: true }
+    });
+
+    if (event.organizerId !== organizerId && organizer?.role !== 'ADMIN') {
+      throw new ForbiddenException('Only the event organizer can kick users from this event');
+    }
+
+    // Prevent organizer from kicking themselves
+    if (participantId === organizerId) {
+      throw new BadRequestException('Event organizer cannot kick themselves from their own event');
+    }
+
+    // Check if the user is actually attending the event
+    const attendee = await this.prisma.eventAttendee.findUnique({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId: participantId,
+        },
+      },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        }
+      }
+    });
+
+    if (!attendee) {
+      throw new NotFoundException('User is not attending this event');
+    }
+
+    // Remove the user from the event
+    await this.prisma.eventAttendee.delete({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId: participantId,
+        },
+      },
+    });
+
+    // Log the action for audit purposes
+    this.logger.log(`User ${attendee.user.name} (${attendee.user.email}) was kicked from event "${event.title}" by organizer ${organizerId}`);
+
+    // Emit WebSocket event to notify all event participants
+    try {
+      this.webSocketGateway.server.to(`event:${eventId}`).emit('event:user_kicked', {
+        eventId,
+        kickedUserId: participantId,
+        kickedUserName: attendee.user.name,
+        organizerId,
+        timestamp: new Date().toISOString(),
+        message: `${attendee.user.name} was removed from the event`,
+      });
+
+      // Notify the kicked user specifically (if they're connected)
+      this.webSocketGateway.server.to(`user:${participantId}`).emit('event:kicked_from_event', {
+        eventId,
+        eventTitle: event.title,
+        organizerId,
+        timestamp: new Date().toISOString(),
+        message: `You have been removed from "${event.title}"`,
+      });
+    } catch (error) {
+      this.logger.warn('Failed to send WebSocket notification for user kick', error);
+    }
+
+    // Send notification to the kicked user
+    try {
+      await this.notificationsService.createNotification({
+        userId: participantId,
+        type: 'EVENT_KICKED',
+        title: 'Removed from Event',
+        message: `You have been removed from "${event.title}"`,
+        data: { eventId, eventTitle: event.title },
+      });
+    } catch (error) {
+      this.logger.warn('Failed to create notification for kicked user', error);
+    }
+
+    return {
+      success: true,
+      message: `Successfully removed ${attendee.user.name} from the event`,
+      kickedUser: {
+        id: participantId,
+        name: attendee.user.name,
+        email: attendee.user.email,
+      },
+      event: {
+        id: eventId,
+        title: event.title,
+      },
     };
   }
 

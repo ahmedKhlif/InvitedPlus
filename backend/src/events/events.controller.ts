@@ -139,5 +139,20 @@ export class EventsController {
     return this.eventsService.leaveEvent(id, userId);
   }
 
+  @Delete(':id/participants/:participantId')
+  @Roles('ADMIN', 'ORGANIZER')
+  @ApiOperation({ summary: 'Kick user from event (Organizer only)' })
+  @ApiResponse({ status: 200, description: 'User kicked from event successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Only event organizer can kick users' })
+  @ApiResponse({ status: 404, description: 'Event or participant not found' })
+  kickUserFromEvent(
+    @Param('id') eventId: string,
+    @Param('participantId') participantId: string,
+    @Request() req: any
+  ) {
+    const organizerId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.eventsService.kickUserFromEvent(eventId, participantId, organizerId);
+  }
+
 
 }
