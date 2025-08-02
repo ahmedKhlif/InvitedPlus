@@ -28,6 +28,20 @@ export class CloudinaryService {
     console.log('Cloudinary Configured:', this.isConfigured() ? '✅ Yes' : '❌ No');
   }
 
+  /**
+   * Determine the correct Cloudinary resource type based on file mimetype
+   */
+  private getResourceType(mimetype: string): 'image' | 'video' | 'raw' {
+    if (mimetype.startsWith('image/')) {
+      return 'image';
+    }
+    if (mimetype.startsWith('video/') || mimetype.startsWith('audio/')) {
+      return 'video'; // Cloudinary uses 'video' for both video and audio
+    }
+    // For PDFs, documents, and other files, use 'raw'
+    return 'raw';
+  }
+
   async uploadFile(
     file: Express.Multer.File,
     options: any = {}
@@ -39,20 +53,42 @@ export class CloudinaryService {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const folderPath = `invited-plus/uploads/${year}/${month}`;
 
+      // Determine correct resource type based on file mimetype
+      const resourceType = this.getResourceType(file.mimetype);
+
+      console.log(`📁 Uploading file: ${file.originalname}`);
+      console.log(`📋 MIME type: ${file.mimetype}`);
+      console.log(`🏷️ Resource type: ${resourceType}`);
+
+      const uploadOptions = {
+        resource_type: resourceType, // Use correct resource type instead of 'auto'
+        folder: folderPath,
+        use_filename: true,
+        unique_filename: true,
+        access_mode: 'public', // Ensure public access
+        type: 'upload', // Ensure it's an upload type
+        upload_preset: this.uploadPreset, // Use the configured upload preset
+        ...options,
+      };
+
+      console.log('🚀 Upload options:', JSON.stringify(uploadOptions, null, 2));
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder: folderPath,
-            use_filename: true,
-            unique_filename: true,
-            access_mode: 'public', // Ensure public access
-            type: 'upload', // Ensure it's an upload type
-            ...options,
-          },
+          uploadOptions,
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('❌ Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              console.log('✅ Upload successful:', {
+                url: result.secure_url,
+                resource_type: result.resource_type,
+                access_mode: result.access_mode,
+                type: result.type
+              });
+              resolve(result);
+            }
           }
         );
         uploadStream.end(file.buffer);
