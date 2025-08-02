@@ -49,14 +49,26 @@ export class UploadService {
     try {
       for (const file of files) {
         this.validateFile(file);
-        const url = await this.processAndSaveImage(file, type);
-        uploadedUrls.push(url);
+
+        if (this.useCloudinary) {
+          // Use Cloudinary for consistent image uploads
+          const result = await this.cloudinaryService.uploadImage(file, {
+            folder: `invited-plus/${type}`,
+          });
+          uploadedUrls.push(result.url);
+        } else {
+          // Fallback to local storage
+          const url = await this.processAndSaveImage(file, type);
+          uploadedUrls.push(url);
+        }
       }
 
       return uploadedUrls;
     } catch (error) {
-      // Clean up any uploaded files if there's an error
-      await this.cleanupFiles(uploadedUrls);
+      // Clean up any uploaded files if there's an error (only for local storage)
+      if (!this.useCloudinary) {
+        await this.cleanupFiles(uploadedUrls);
+      }
       throw error;
     }
   }
@@ -69,7 +81,10 @@ export class UploadService {
     this.validateFile(file);
 
     if (this.useCloudinary) {
-      const result = await this.cloudinaryService.uploadImage(file);
+      // Use Cloudinary with proper folder structure
+      const result = await this.cloudinaryService.uploadImage(file, {
+        folder: `invited-plus/${type}`,
+      });
       return result.url;
     }
 
@@ -220,6 +235,13 @@ export class UploadService {
 
   // Create thumbnail version
   async createThumbnail(file: Express.Multer.File, type: string): Promise<string> {
+    if (this.useCloudinary) {
+      // Use Cloudinary's built-in thumbnail generation
+      const result = await this.cloudinaryService.createThumbnail(file, `thumbnails/${type}`);
+      return result.url;
+    }
+
+    // Fallback to local storage
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = `${type}-thumb-${uniqueSuffix}.webp`;
     const filepath = path.join(this.uploadsDir, type, filename);

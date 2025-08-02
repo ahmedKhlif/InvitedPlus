@@ -230,6 +230,9 @@ export class CloudinaryService {
             use_filename: true,
             unique_filename: true,
             overwrite: false,
+            // Ensure public access like other uploads
+            access_mode: 'public',
+            type: 'upload',
           },
           (error, result) => {
             if (error) reject(error);

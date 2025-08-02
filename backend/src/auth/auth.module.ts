@@ -9,11 +9,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
 import { EmailModule } from '../common/email/email.module';
+import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
 import { PermissionsService } from './services/permissions.service';
 
 @Module({
   imports: [
     EmailModule,
+    CloudinaryModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

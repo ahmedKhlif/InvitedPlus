@@ -8,11 +8,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import * as sharp from 'sharp';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EmailService } from '../common/email/email.service';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 import { JwtService } from './jwt.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 
@@ -23,6 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   private generateVerificationCode(): string {
@@ -296,33 +295,19 @@ export class AuthService {
     }
 
     try {
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      // Use Cloudinary for avatar upload with specific avatar folder
+      const uploadResult = await this.cloudinaryService.uploadImage(file, {
+        folder: 'invited-plus/avatars',
+        transformation: [
+          { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+          { quality: 'auto:good', format: 'webp' }
+        ]
+      });
 
-      // Generate unique filename
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const filename = `avatar-${uniqueSuffix}.webp`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Process image: resize and convert to WebP
-      await sharp(file.buffer)
-        .resize(300, 300, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .webp({ quality: 85 })
-        .toFile(filepath);
-
-      // Generate URL for the avatar
-      const avatarUrl = `/uploads/avatars/${filename}`;
-
-      // Update user's avatar in database
+      // Update user's avatar in database with Cloudinary URL
       const updatedUser = await this.prismaService.user.update({
         where: { id: userId },
-        data: { avatar: avatarUrl },
+        data: { avatar: uploadResult.url },
         select: {
           id: true,
           name: true,
@@ -339,7 +324,7 @@ export class AuthService {
         success: true,
         message: 'Avatar uploaded successfully',
         user: updatedUser,
-        avatarUrl,
+        avatarUrl: uploadResult.url,
       };
     } catch (error) {
       console.error('Error uploading avatar:', error);
