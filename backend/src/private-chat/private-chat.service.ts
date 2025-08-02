@@ -223,28 +223,7 @@ export class PrivateChatService {
     };
   }
 
-  async deleteMessage(messageId: string, userId: string) {
-    const message = await this.prisma.privateMessage.findUnique({
-      where: { id: messageId }
-    });
 
-    if (!message) {
-      throw new NotFoundException('Message not found');
-    }
-
-    if (message.senderId !== userId) {
-      throw new ForbiddenException('You can only delete your own messages');
-    }
-
-    await this.prisma.privateMessage.delete({
-      where: { id: messageId }
-    });
-
-    return {
-      success: true,
-      message: 'Message deleted successfully'
-    };
-  }
 
   async getUnreadCount(userId: string) {
     const unreadCount = await this.prisma.privateMessage.count({
@@ -517,5 +496,40 @@ export class PrivateChatService {
       console.error('File upload error:', error);
       throw new BadRequestException('Failed to upload file');
     }
+  }
+
+  async deleteMessage(messageId: string, userId: string) {
+    // First, find the message to verify ownership
+    const message = await this.prisma.privateMessage.findUnique({
+      where: { id: messageId },
+      include: {
+        sender: {
+          select: { id: true, name: true }
+        },
+        receiver: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Check if user can delete this message (only sender can delete their own messages)
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    // Delete the message (this will cascade delete reactions)
+    await this.prisma.privateMessage.delete({
+      where: { id: messageId }
+    });
+
+    return {
+      success: true,
+      message: 'Message deleted successfully',
+      messageId,
+    };
   }
 }

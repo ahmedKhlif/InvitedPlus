@@ -183,6 +183,69 @@ export class ChatService {
     };
   }
 
+  async deleteMessage(messageId: string, userId: string) {
+    // First, find the message to verify ownership
+    const message = await this.prisma.chatMessage.findUnique({
+      where: { id: messageId },
+      include: {
+        sender: {
+          select: { id: true, name: true }
+        },
+        event: {
+          select: { id: true, title: true, organizerId: true }
+        }
+      }
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Check if user can delete this message
+    // Users can delete their own messages, or organizers can delete messages in their events
+    const canDelete = message.senderId === userId ||
+                     (message.event && message.event.organizerId === userId);
+
+    if (!canDelete) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    // Delete the message (this will cascade delete reactions)
+    await this.prisma.chatMessage.delete({
+      where: { id: messageId }
+    });
+
+    // Create activity log for message deletion
+    try {
+      await this.prisma.activityLog.create({
+        data: {
+          action: 'MESSAGE_DELETED',
+          description: message.event
+            ? `Deleted a message in "${message.event.title}" chat`
+            : 'Deleted a message in global chat',
+          userId,
+          entityType: 'message',
+          entityId: messageId,
+          metadata: {
+            originalSenderId: message.senderId,
+            originalSenderName: message.sender.name,
+            eventId: message.eventId,
+            eventTitle: message.event?.title,
+            deletedByOwner: message.senderId === userId
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create activity log for message deletion:', error);
+    }
+
+    return {
+      success: true,
+      message: 'Message deleted successfully',
+      messageId,
+    };
+  }
+
   async getEventMessages(eventId: string, userId: string, pagination = { page: 1, limit: 50 }) {
     await this.verifyEventAccess(eventId, userId);
 

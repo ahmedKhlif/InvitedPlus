@@ -8,6 +8,7 @@ import { PaperAirplaneIcon, UserIcon, PhotoIcon, MicrophoneIcon, PaperClipIcon, 
 import api from '@/lib/api';
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import MediaMessage from '@/components/chat/MediaMessage';
+import MessageActions from '@/components/chat/MessageActions';
 
 interface Message {
   id: string;
@@ -235,6 +236,17 @@ export default function ChatPage() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await chatService.deleteMessage(messageId);
+      // Remove the message from the local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error: any) {
+      console.error('Failed to delete message:', error);
+      throw error; // Re-throw to let MessageActions handle the error display
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -323,7 +335,7 @@ export default function ChatPage() {
                   )}
                   
                   <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
+                    <div className={`relative max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
                       {!isCurrentUser && (
                         <div className="text-xs font-medium text-gray-600 mb-1">
                           {message.sender.name}
@@ -397,6 +409,15 @@ export default function ChatPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Message Actions */}
+                      <MessageActions
+                        messageId={message.id}
+                        isOwnMessage={isCurrentUser}
+                        isEventMessage={false}
+                        onDelete={handleDeleteMessage}
+                        className="absolute top-2 right-2"
+                      />
                     </div>
                     
                     {!isCurrentUser && (

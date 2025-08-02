@@ -146,6 +146,17 @@ export class PrivateChatController {
     return this.privateChatService.removeReaction(messageId, userId, emoji);
   }
 
+  @Delete('messages/:messageId')
+  @ApiOperation({ summary: 'Delete private message' })
+  @ApiResponse({ status: 200, description: 'Message deleted successfully' })
+  async deleteMessage(
+    @Request() req: any,
+    @Param('messageId') messageId: string
+  ) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.privateChatService.deleteMessage(messageId, userId);
+  }
+
   @Post('upload/image')
   @ApiOperation({ summary: 'Upload image for private chat' })
   @ApiResponse({ status: 201, description: 'Image uploaded successfully' })

@@ -137,6 +137,17 @@ export class ChatController {
     return this.messageReactionsService.getMessageReactions(messageId);
   }
 
+  @Delete('messages/:messageId')
+  @ApiOperation({ summary: 'Delete a chat message' })
+  @ApiResponse({ status: 200, description: 'Message deleted successfully' })
+  async deleteMessage(
+    @Param('messageId') messageId: string,
+    @Request() req: any
+  ) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+    return this.chatService.deleteMessage(messageId, userId);
+  }
+
   @Delete('messages/:messageId/react/:emoji')
   @ApiOperation({ summary: 'Remove reaction from message' })
   @ApiResponse({ status: 200, description: 'Reaction removed successfully' })

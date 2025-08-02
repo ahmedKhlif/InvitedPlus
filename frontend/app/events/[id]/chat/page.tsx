@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { PaperAirplaneIcon, ArrowLeftIcon, PhotoIcon, MicrophoneIcon, PaperClipIcon, HeartIcon, HandThumbUpIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import MediaMessage from '@/components/chat/MediaMessage';
+import MessageActions from '@/components/chat/MessageActions';
 
 interface Message {
   id: string;
@@ -339,6 +340,17 @@ export default function EventChatPage() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await chatService.deleteMessage(messageId);
+      // Remove the message from the local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error: any) {
+      console.error('Failed to delete message:', error);
+      throw error; // Re-throw to let MessageActions handle the error display
+    }
+  };
+
   const formatTime = (createdAt: string) => {
     const date = new Date(createdAt);
     const now = new Date();
@@ -396,7 +408,7 @@ export default function EventChatPage() {
                 className={`flex ${message.sender.id === user?.id ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`group px-4 py-2 rounded-lg ${
+                  className={`group relative px-4 py-2 rounded-lg ${
                     message.sender.id === user?.id
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white text-gray-900 shadow-sm border border-gray-200'
@@ -484,6 +496,15 @@ export default function EventChatPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Message Actions */}
+                  <MessageActions
+                    messageId={message.id}
+                    isOwnMessage={message.sender.id === user?.id}
+                    isEventMessage={true}
+                    onDelete={handleDeleteMessage}
+                    className="absolute top-2 right-2"
+                  />
                 </div>
               </div>
             ))}

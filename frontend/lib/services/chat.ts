@@ -160,5 +160,11 @@ export const chatService = {
       },
     });
     return response.data;
+  },
+
+  // Delete message
+  async deleteMessage(messageId: string): Promise<{ success: boolean; message: string; messageId: string }> {
+    const response = await api.delete(`/chat/messages/${messageId}`);
+    return response.data;
   }
 };

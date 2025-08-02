@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import MediaMessage from '@/components/chat/MediaMessage';
+import MessageActions from '@/components/chat/MessageActions';
 import { websocketService } from '@/lib/websocket';
+import { privateChatService } from '@/lib/services/privateChat';
 import {
   ArrowLeftIcon,
   PaperAirplaneIcon,
@@ -351,6 +353,17 @@ export default function PrivateChatPage() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await privateChatService.deleteMessage(messageId);
+      // Remove the message from the local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (error: any) {
+      console.error('Failed to delete message:', error);
+      throw error; // Re-throw to let MessageActions handle the error display
+    }
+  };
+
   const getLastSeenText = (lastSeenAt?: string) => {
     if (!lastSeenAt) return 'Offline';
 
@@ -500,7 +513,7 @@ export default function PrivateChatPage() {
                       )}
 
                       <div
-                        className={`group px-4 py-2 rounded-lg ${
+                        className={`group relative px-4 py-2 rounded-lg ${
                           isOwn
                             ? 'bg-indigo-600 text-white'
                             : 'bg-white text-gray-900 border border-gray-200'
@@ -597,6 +610,15 @@ export default function PrivateChatPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Message Actions */}
+                        <MessageActions
+                          messageId={message.id}
+                          isOwnMessage={isOwn}
+                          isEventMessage={false}
+                          onDelete={handleDeleteMessage}
+                          className="absolute top-2 right-2"
+                        />
                       </div>
                     </div>
 
