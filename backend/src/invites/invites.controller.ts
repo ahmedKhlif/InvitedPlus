@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { InvitesService } from './invites.service';
 import { SecureInvitesService } from './secure-invites.service';
@@ -53,10 +54,32 @@ export class InvitesController {
   }
 
   @Get('secure/:token/verify')
-  @ApiOperation({ summary: 'Verify secure invitation token' })
+  @ApiOperation({ summary: 'Verify secure invitation token (public)' })
   @ApiResponse({ status: 200, description: 'Token verified successfully' })
   async verifySecureToken(@Param('token') token: string) {
     return this.secureInvitesService.verifyInvitationToken(token);
+  }
+
+  @Get('secure/:token/verify-with-email')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify secure invitation token with email validation' })
+  @ApiResponse({ status: 200, description: 'Token verified successfully with email match' })
+  @ApiResponse({ status: 403, description: 'Email address does not match invitation' })
+  async verifySecureTokenWithEmail(@Param('token') token: string, @Request() req: any) {
+    const userId = req.user?.sub || req.user?.userId || req.user?.id;
+
+    // Get user email
+    const user = await this.secureInvitesService['prisma'].user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.secureInvitesService.verifyInvitationToken(token, user.email);
   }
 
   @Get('secure/:token')

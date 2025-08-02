@@ -839,12 +839,13 @@ export class EventsService {
         }
       });
 
-      // Send the email invitation with event invite code (not secure token)
-      await this.emailService.sendEventInvitation(
+      // Send the secure email invitation with token
+      await this.emailService.sendSecureEventInvitation(
         email,
         event.title,
-        event.inviteCode,
-        event.organizer.name
+        invitationToken,
+        event.organizer.name,
+        event.id
       );
 
       return {

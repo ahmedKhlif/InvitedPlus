@@ -177,6 +177,31 @@ export class EmailService {
     }
   }
 
+  async sendSecureEventInvitation(email: string, eventTitle: string, secureToken: string, organizerName: string, eventId: string): Promise<void> {
+    if (!this.transporter) {
+      this.logger.warn('Email service not configured. Skipping secure event invitation email.');
+      return;
+    }
+
+    const appUrl = this.configService.get<string>('APP_URL', 'https://invited-plus.vercel.app');
+    const secureInviteUrl = `${appUrl}/secure-invite/${secureToken}`;
+
+    const mailOptions = {
+      from: this.configService.get<string>('FROM_EMAIL', 'noreply@invitedplus.com'),
+      to: email,
+      subject: `🎉 You're Invited: ${eventTitle}`,
+      html: this.getSecureEventInvitationTemplate(eventTitle, secureInviteUrl, organizerName, email),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Secure event invitation sent to ${email} for event: ${eventTitle} (Token: ${secureToken.substring(0, 8)}...)`);
+    } catch (error) {
+      this.logger.error(`Failed to send secure event invitation to ${email}:`, error);
+      throw error;
+    }
+  }
+
   async sendTaskAssignmentNotification(email: string, taskTitle: string, eventTitle: string, assignerName: string): Promise<void> {
     if (!this.transporter) {
       this.logger.warn('Email service not configured. Skipping task assignment notification.');
@@ -313,6 +338,111 @@ export class EmailService {
           <div class="footer">
             <p>Powered by Invited+ - Smart Event Management</p>
             <p>&copy; 2025 Invited+. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getSecureEventInvitationTemplate(eventTitle: string, secureInviteUrl: string, organizerName: string, recipientEmail: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>🔐 Secure Event Invitation - ${eventTitle}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f7fa; }
+          .container { max-width: 650px; margin: 0 auto; background: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+          .content { padding: 40px 30px; }
+          .security-badge { background: #e8f5e8; border: 2px solid #4caf50; border-radius: 10px; padding: 20px; margin: 25px 0; text-align: center; }
+          .security-icon { font-size: 24px; color: #4caf50; margin-bottom: 10px; }
+          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; margin: 25px 0; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; }
+          .button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+          .warning { background: #fff3cd; border-left: 4px solid #ffc107; color: #856404; padding: 15px 20px; margin: 20px 0; border-radius: 4px; }
+          .footer { text-align: center; padding: 30px; background: #f8f9fa; color: #666; font-size: 14px; border-top: 1px solid #e9ecef; }
+          .highlight { color: #667eea; font-weight: bold; }
+          .email-specific { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; }
+          .features { display: flex; flex-wrap: wrap; gap: 15px; margin: 25px 0; }
+          .feature { flex: 1; min-width: 200px; background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+          .feature-icon { font-size: 20px; margin-bottom: 8px; }
+          @media (max-width: 600px) {
+            .container { margin: 0 10px; }
+            .content { padding: 20px; }
+            .features { flex-direction: column; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 You're Personally Invited!</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 18px;">${eventTitle}</p>
+          </div>
+          <div class="content">
+            <div class="security-badge">
+              <div class="security-icon">🔐</div>
+              <strong>Secure Personal Invitation</strong>
+              <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">This invitation is exclusively for ${recipientEmail}</p>
+            </div>
+
+            <h2>Hello! 👋</h2>
+            <p><strong>${organizerName}</strong> has personally invited you to join <strong>${eventTitle}</strong> on Invited+.</p>
+
+            <div class="email-specific">
+              <strong>📧 Email Verification Required:</strong> This secure invitation can only be accessed by the email address it was sent to (${recipientEmail}). You'll need to log in with this email address to accept the invitation.
+            </div>
+
+            <div class="features">
+              <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <strong>Secure Access</strong>
+                <p>One-time use token</p>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">✉️</div>
+                <strong>Email Verified</strong>
+                <p>Only for ${recipientEmail}</p>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">⏰</div>
+                <strong>Time Limited</strong>
+                <p>Expires in 7 days</p>
+              </div>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${secureInviteUrl}" class="button">🎫 Accept Secure Invitation</a>
+            </div>
+
+            <div class="warning">
+              <strong>🛡️ Security Notice:</strong>
+              <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                <li>This invitation link is unique and can only be used once</li>
+                <li>You must be logged in with <strong>${recipientEmail}</strong> to access it</li>
+                <li>The invitation will expire in 7 days for security</li>
+                <li>If you didn't expect this invitation, please ignore this email</li>
+              </ul>
+            </div>
+
+            <p><strong>Can't click the button?</strong> Copy and paste this secure link into your browser:</p>
+            <p style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+              ${secureInviteUrl}
+            </p>
+
+            <p style="margin-top: 30px; color: #666; font-size: 14px;">
+              <strong>Need help?</strong> Contact ${organizerName} or visit our support center.
+            </p>
+          </div>
+          <div class="footer">
+            <p><strong>Invited+</strong> - Secure Event Management Platform</p>
+            <p>&copy; 2025 Invited+. All rights reserved.</p>
+            <p style="font-size: 12px; margin-top: 15px;">
+              This is a secure, personalized invitation. Please do not forward this email.
+            </p>
           </div>
         </div>
       </body>
