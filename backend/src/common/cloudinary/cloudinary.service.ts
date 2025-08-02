@@ -41,15 +41,29 @@ export class CloudinaryService {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const folderPath = `invited-plus/uploads/${year}/${month}`;
 
+      // Determine correct resource type - PDFs should be 'raw', not 'image'
+      let resourceType = 'auto';
+      if (file.mimetype === 'application/pdf' ||
+          file.mimetype.startsWith('application/') ||
+          file.mimetype.startsWith('text/')) {
+        resourceType = 'raw';
+      } else if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('audio/')) {
+        resourceType = 'video';
+      } else if (file.mimetype.startsWith('image/')) {
+        resourceType = 'image';
+      }
+
+      console.log(`📁 Uploading: ${file.originalname}`);
+      console.log(`📋 MIME: ${file.mimetype}`);
+      console.log(`🏷️ Resource type: ${resourceType}`);
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            resource_type: 'auto',
+            resource_type: resourceType, // Use proper resource type
             folder: folderPath,
             use_filename: true,
             unique_filename: true,
-            // BYPASS UPLOAD PRESET - it might have restrictions
-            // upload_preset: this.uploadPreset, // REMOVED - might be blocking
             // FORCE PUBLIC ACCESS AND DELIVERY
             access_mode: 'public',
             type: 'upload',
