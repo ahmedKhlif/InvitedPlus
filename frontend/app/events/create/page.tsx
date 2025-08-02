@@ -6,6 +6,7 @@ import { eventsService } from '@/lib/services';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/lib/contexts/ToastContext';
 import ImageUpload from '@/components/common/ImageUpload';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -142,18 +143,13 @@ export default function CreateEventPage() {
 
               {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description *
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
+                <RichTextEditor
+                  label="Description"
                   value={formData.description}
-                  onChange={handleInputChange}
-                  required
-                  rows={4}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
                   placeholder="Describe your event"
+                  required
+                  height="200px"
                 />
               </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
+import RichTextEditor from '../ui/RichTextEditor';
 
 interface Event {
   id: string;
@@ -249,17 +250,12 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }: Crea
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows={3}
+            <RichTextEditor
+              label="Description"
               value={formData.description}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              onChange={(value) => setFormData({ ...formData, description: value })}
               placeholder="Enter task description"
+              height="150px"
             />
           </div>
 

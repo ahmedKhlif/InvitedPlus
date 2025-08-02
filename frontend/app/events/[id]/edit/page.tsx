@@ -7,6 +7,7 @@ import ImageUpload from '@/components/common/ImageUpload';
 import { authService } from '@/lib/services';
 import { api } from '@/lib/api';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface Event {
   id: string;
@@ -218,18 +219,13 @@ export default function EditEventPage() {
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                required
-                rows={4}
+              <RichTextEditor
+                label="Description"
                 value={formData.description}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
                 placeholder="Describe your event"
+                required
+                height="200px"
               />
             </div>
 

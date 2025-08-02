@@ -10,6 +10,7 @@ import {
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import ImageUpload from '@/components/common/ImageUpload';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface Task {
   id: string;
@@ -309,17 +310,12 @@ export default function EditTaskPage() {
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows={4}
-                value={formData.description}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              <RichTextEditor
+                label="Description"
+                value={formData.description || ''}
+                onChange={(value) => setFormData({ ...formData, description: value })}
                 placeholder="Enter task description"
+                height="150px"
               />
             </div>
 

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import {
   BellIcon,
   ShieldCheckIcon,
@@ -452,15 +453,12 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Bio
-                      </label>
-                      <textarea
+                      <RichTextEditor
+                        label="Bio"
                         value={profileForm.bio}
-                        onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                        onChange={(value) => setProfileForm(prev => ({ ...prev, bio: value }))}
                         placeholder="Tell us about yourself..."
-                        rows={4}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        height="150px"
                       />
                     </div>
 
