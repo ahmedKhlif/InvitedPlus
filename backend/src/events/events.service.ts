@@ -721,7 +721,7 @@ export class EventsService {
         type: 'EVENT_KICKED',
         title: 'Removed from Event',
         message: `You have been removed from "${event.title}"`,
-        data: { eventId, eventTitle: event.title },
+        eventId: eventId,
       });
     } catch (error) {
       this.logger.warn('Failed to create notification for kicked user', error);

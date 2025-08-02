@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import RichTextEditor from '../ui/RichTextEditor';
 
 interface CompleteTaskModalProps {
   isOpen: boolean;

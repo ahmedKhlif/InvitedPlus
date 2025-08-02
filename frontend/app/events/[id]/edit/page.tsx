@@ -8,6 +8,7 @@ import { authService } from '@/lib/services';
 import { api } from '@/lib/api';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import TagInput from '@/components/ui/TagInput';
 
 interface Event {
   id: string;
@@ -20,7 +21,7 @@ interface Event {
   isPublic: boolean;
   status: string;
   category?: string;
-  tags?: string;
+  tags?: string[];
   imageUrl?: string;
   images?: string[];
   organizer: {
@@ -95,7 +96,9 @@ export default function EditEventPage() {
           isPublic: eventData.isPublic ?? true,
           status: eventData.status || 'DRAFT',
           category: eventData.category || '',
-          tags: eventData.tags || '',
+          tags: typeof eventData.tags === 'string'
+            ? eventData.tags.split(',').filter(tag => tag.trim())
+            : eventData.tags || [],
           images: eventData.images || [],
         });
       } catch (error: any) {
@@ -326,17 +329,18 @@ export default function EditEventPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
+                <TagInput
+                  label="Tags"
                   value={formData.tags}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Comma-separated tags"
+                  onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                  placeholder="Add tags to help people find your event"
+                  maxTags={10}
+                  suggestions={[
+                    'tech', 'networking', 'business', 'social', 'educational',
+                    'workshop', 'conference', 'meetup', 'party', 'celebration',
+                    'wedding', 'birthday', 'corporate', 'charity', 'sports',
+                    'music', 'art', 'food', 'travel', 'outdoor'
+                  ]}
                 />
               </div>
             </div>

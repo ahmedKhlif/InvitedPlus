@@ -7,6 +7,7 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/lib/contexts/ToastContext';
 import ImageUpload from '@/components/common/ImageUpload';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import TagInput from '@/components/ui/TagInput';
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -19,7 +20,7 @@ export default function CreateEventPage() {
     isPublic: true,
     requiresApproval: false,
     category: '',
-    tags: '',
+    tags: [] as string[],
     images: [] as string[],
   });
   const [loading, setLoading] = useState(false);
@@ -250,17 +251,18 @@ export default function CreateEventPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                    Tags
-                  </label>
-                  <input
-                    type="text"
-                    id="tags"
-                    name="tags"
+                  <TagInput
+                    label="Tags"
                     value={formData.tags}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Comma-separated tags (e.g., tech, networking, fun)"
+                    onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                    placeholder="Add tags to help people find your event"
+                    maxTags={10}
+                    suggestions={[
+                      'tech', 'networking', 'business', 'social', 'educational',
+                      'workshop', 'conference', 'meetup', 'party', 'celebration',
+                      'wedding', 'birthday', 'corporate', 'charity', 'sports',
+                      'music', 'art', 'food', 'travel', 'outdoor'
+                    ]}
                   />
                 </div>
               </div>

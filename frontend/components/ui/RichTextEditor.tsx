@@ -1,16 +1,13 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { 
+// Dynamically import MDEditor to avoid SSR issues
+const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
   ssr: false,
   loading: () => <div className="h-32 bg-gray-50 rounded-md animate-pulse" />
 });
-
-// Import Quill styles
-import 'react-quill/dist/quill.snow.css';
 
 interface RichTextEditorProps {
   value: string;
@@ -35,32 +32,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   required = false,
   error
 }) => {
-  const quillRef = useRef<any>(null);
-
-  // Custom toolbar configuration
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      ['link', 'image'],
-      [{ 'align': [] }],
-      [{ 'color': [] }, { 'background': [] }],
-      ['clean']
-    ],
+  // Convert HTML to markdown for display (basic conversion)
+  const htmlToMarkdown = (html: string): string => {
+    if (!html) return '';
+    return html
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<b>(.*?)<\/b>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<i>(.*?)<\/i>/g, '*$1*')
+      .replace(/<h1>(.*?)<\/h1>/g, '# $1')
+      .replace(/<h2>(.*?)<\/h2>/g, '## $1')
+      .replace(/<h3>(.*?)<\/h3>/g, '### $1')
+      .replace(/<ul>/g, '').replace(/<\/ul>/g, '')
+      .replace(/<ol>/g, '').replace(/<\/ol>/g, '')
+      .replace(/<li>(.*?)<\/li>/g, '- $1')
+      .replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)')
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
+      .replace(/<[^>]*>/g, ''); // Remove any remaining HTML tags
   };
 
-  const formats = [
-    'header', 'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet', 'indent',
-    'link', 'image', 'align', 'color', 'background'
-  ];
-
-  // Custom styles for the editor
-  const editorStyle = {
-    height: height,
-    marginBottom: '42px' // Space for toolbar
+  // Convert markdown to HTML for storage
+  const markdownToHtml = (markdown: string): string => {
+    if (!markdown) return '';
+    return markdown
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+      .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+      .replace(/^- (.*$)/gm, '<li>$1</li>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/^(.*)$/, '<p>$1</p>');
   };
 
   return (
@@ -71,22 +76,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
+
       <div className="relative">
-        <ReactQuill
-          ref={quillRef}
-          theme="snow"
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          readOnly={disabled}
-          modules={modules}
-          formats={formats}
-          style={editorStyle}
-          className={`
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-            ${error ? 'border-red-300' : 'border-gray-300'}
-          `}
+        <MDEditor
+          value={htmlToMarkdown(value)}
+          onChange={(val) => onChange(markdownToHtml(val || ''))}
+          preview="edit"
+          hideToolbar={disabled}
+          visibleDragBar={false}
+          data-color-mode="light"
+          height={parseInt(height)}
+          style={{
+            backgroundColor: disabled ? '#f3f4f6' : 'white',
+          }}
+          textareaProps={{
+            placeholder,
+            disabled,
+            style: {
+              fontSize: 14,
+              lineHeight: 1.5,
+              fontFamily: 'inherit',
+              backgroundColor: disabled ? '#f3f4f6' : 'white',
+              color: disabled ? '#6b7280' : 'inherit',
+            },
+          }}
         />
       </div>
 
@@ -95,76 +108,32 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       )}
 
       <style jsx global>{`
-        .rich-text-editor .ql-editor {
-          min-height: ${height};
-          font-family: inherit;
-          font-size: 14px;
-          line-height: 1.5;
+        .rich-text-editor .w-md-editor {
+          background-color: ${disabled ? '#f3f4f6' : 'white'};
         }
-        
-        .rich-text-editor .ql-toolbar {
-          border-top: 1px solid #e5e7eb;
-          border-left: 1px solid #e5e7eb;
-          border-right: 1px solid #e5e7eb;
-          border-bottom: none;
-          border-radius: 0.375rem 0.375rem 0 0;
-          background: #f9fafb;
+
+        .rich-text-editor .w-md-editor-text-textarea,
+        .rich-text-editor .w-md-editor-text {
+          font-size: 14px !important;
+          line-height: 1.5 !important;
+          font-family: inherit !important;
         }
-        
-        .rich-text-editor .ql-container {
+
+        .rich-text-editor .w-md-editor.w-md-editor-focus {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 1px #3b82f6 !important;
+        }
+
+        .rich-text-editor .w-md-editor-toolbar {
+          background-color: #f9fafb;
           border-bottom: 1px solid #e5e7eb;
-          border-left: 1px solid #e5e7eb;
-          border-right: 1px solid #e5e7eb;
-          border-top: none;
-          border-radius: 0 0 0.375rem 0.375rem;
-          font-family: inherit;
         }
-        
-        .rich-text-editor .ql-editor.ql-blank::before {
-          color: #9ca3af;
-          font-style: normal;
+
+        ${error ? `
+        .rich-text-editor .w-md-editor {
+          border-color: #fca5a5 !important;
         }
-        
-        .rich-text-editor .ql-editor:focus {
-          outline: none;
-        }
-        
-        .rich-text-editor .ql-container.ql-snow {
-          border: 1px solid #e5e7eb;
-        }
-        
-        .rich-text-editor .ql-toolbar.ql-snow {
-          border: 1px solid #e5e7eb;
-        }
-        
-        /* Focus styles */
-        .rich-text-editor:focus-within .ql-toolbar {
-          border-color: #3b82f6;
-        }
-        
-        .rich-text-editor:focus-within .ql-container {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 1px #3b82f6;
-        }
-        
-        /* Error styles */
-        .rich-text-editor .ql-toolbar.border-red-300 {
-          border-color: #fca5a5;
-        }
-        
-        .rich-text-editor .ql-container.border-red-300 {
-          border-color: #fca5a5;
-        }
-        
-        /* Disabled styles */
-        .rich-text-editor .ql-toolbar.ql-disabled {
-          background: #f3f4f6;
-        }
-        
-        .rich-text-editor .ql-editor.ql-disabled {
-          background: #f3f4f6;
-          color: #6b7280;
-        }
+        ` : ''}
       `}</style>
     </div>
   );

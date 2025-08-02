@@ -8,7 +8,9 @@ const nextConfig = {
       'localhost',
       'invitedplus-production.up.railway.app',
       'vercel.app',
-      'invited-plus.vercel.app'
+      'invited-plus.vercel.app',
+      'res.cloudinary.com',
+      'cloudinary.com'
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
