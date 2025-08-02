@@ -41,53 +41,22 @@ export class CloudinaryService {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const folderPath = `invited-plus/uploads/${year}/${month}`;
 
-      // Determine correct resource type - PDFs should be 'raw', not 'image'
-      let resourceType = 'auto';
-      if (file.mimetype === 'application/pdf' ||
-          file.mimetype.startsWith('application/') ||
-          file.mimetype.startsWith('text/')) {
-        resourceType = 'raw';
-      } else if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('audio/')) {
-        resourceType = 'video';
-      } else if (file.mimetype.startsWith('image/')) {
-        resourceType = 'image';
-      }
-
-      console.log(`📁 Uploading: ${file.originalname}`);
-      console.log(`📋 MIME: ${file.mimetype}`);
-      console.log(`🏷️ Resource type: ${resourceType}`);
-
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            resource_type: resourceType, // Use proper resource type
+            resource_type: 'auto', // REVERT: Keep original auto detection
             folder: folderPath,
             use_filename: true,
             unique_filename: true,
-            // FORCE PUBLIC ACCESS AND DELIVERY
+            upload_preset: this.uploadPreset, // REVERT: Use upload preset as before
+            // ONLY FIX: Force public access
             access_mode: 'public',
             type: 'upload',
-            invalidate: true,
-            // Additional flags to ensure public delivery
-            delivery_type: 'upload',
-            sign_url: false, // Don't sign URLs - keep them public
-            // Override any preset restrictions
-            overwrite: false,
             ...options,
           },
           (error, result) => {
-            if (error) {
-              console.error('❌ Cloudinary upload error:', error);
-              reject(error);
-            } else {
-              console.log('✅ Upload result:', {
-                url: result.secure_url,
-                access_mode: result.access_mode,
-                delivery_type: result.delivery_type,
-                resource_type: result.resource_type
-              });
-              resolve(result);
-            }
+            if (error) reject(error);
+            else resolve(result);
           }
         );
         uploadStream.end(file.buffer);
