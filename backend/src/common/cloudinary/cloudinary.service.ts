@@ -33,13 +33,42 @@ export class CloudinaryService {
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
+      // Generate folder structure based on file type and date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      // Determine resource type and folder
+      let resourceType = 'auto';
+      let folder = 'files';
+
+      if (file.mimetype.startsWith('image/')) {
+        resourceType = 'image';
+        folder = 'images';
+      } else if (file.mimetype.startsWith('video/')) {
+        resourceType = 'video';
+        folder = 'videos';
+      } else if (file.mimetype.startsWith('audio/')) {
+        resourceType = 'video'; // Cloudinary uses 'video' for audio
+        folder = 'audio';
+      } else if (file.mimetype === 'application/pdf' ||
+                 file.mimetype.startsWith('application/') ||
+                 file.mimetype.startsWith('text/')) {
+        resourceType = 'raw'; // Use 'raw' for documents, PDFs, and text files
+        folder = 'documents';
+      }
+
+      const folderPath = `invited-plus/${folder}/${year}/${month}/${day}`;
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
-            resource_type: 'auto',
-            // Don't specify folder - preset handles organization with public_id_prefix
-            // Don't specify use_filename/unique_filename - preset handles this
+            resource_type: resourceType,
+            folder: folderPath,
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
             ...options,
           },
           (error, result) => {
@@ -73,14 +102,21 @@ export class CloudinaryService {
         throw new BadRequestException('File must be an image');
       }
 
+      // Generate folder structure based on date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const folderPath = `invited-plus/images/${year}/${month}/${day}`;
+
       // Process image with Sharp for optimization
       let processedBuffer = file.buffer;
-      
+
       if (file.size > 1024 * 1024) { // If larger than 1MB, optimize
         processedBuffer = await sharp(file.buffer)
-          .resize(1920, 1080, { 
-            fit: 'inside', 
-            withoutEnlargement: true 
+          .resize(1920, 1080, {
+            fit: 'inside',
+            withoutEnlargement: true
           })
           .webp({ quality: 85 })
           .toBuffer();
@@ -89,12 +125,14 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
             resource_type: 'image',
+            folder: folderPath,
             format: 'webp',
             quality: 'auto:good',
             fetch_format: 'auto',
-            // Preset handles: use_filename, unique_filename, overwrite, folder organization
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
             ...options,
           },
           (error, result) => {
@@ -128,12 +166,21 @@ export class CloudinaryService {
         throw new BadRequestException('File must be an audio file');
       }
 
+      // Generate folder structure based on date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const folderPath = `invited-plus/audio/${year}/${month}/${day}`;
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
             resource_type: 'video', // Cloudinary uses 'video' for audio files
-            // Preset handles: use_filename, unique_filename, overwrite, folder organization
+            folder: folderPath,
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
             ...options,
           },
           (error, result) => {
@@ -157,6 +204,69 @@ export class CloudinaryService {
     }
   }
 
+  async uploadDocument(
+    file: Express.Multer.File,
+    options: any = {}
+  ): Promise<{ url: string; publicId: string; filename: string }> {
+    try {
+      // Validate file type for documents
+      const allowedDocumentTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/csv',
+        'application/zip',
+        'application/x-rar-compressed',
+        'application/json'
+      ];
+
+      if (!allowedDocumentTypes.includes(file.mimetype)) {
+        throw new BadRequestException('File type not supported for document upload');
+      }
+
+      // Generate folder structure based on date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const folderPath = `invited-plus/documents/${year}/${month}/${day}`;
+
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'raw', // Use 'raw' for documents to preserve original format
+            folder: folderPath,
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
+            ...options,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(file.buffer);
+      });
+
+      const uploadResult = result as any;
+
+      return {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        filename: uploadResult.original_filename || file.originalname,
+      };
+    } catch (error) {
+      console.error('Cloudinary document upload error:', error);
+      throw new BadRequestException('Failed to upload document to cloud storage');
+    }
+  }
+
   async deleteFile(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);
@@ -172,6 +282,13 @@ export class CloudinaryService {
     size: { width: number; height: number } = { width: 300, height: 300 }
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
+      // Generate folder structure based on date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const folderPath = `invited-plus/${folder}/${year}/${month}/${day}`;
+
       // Create thumbnail with Sharp
       const thumbnailBuffer = await sharp(file.buffer)
         .resize(size.width, size.height, {
@@ -184,10 +301,13 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder,
+            folder: folderPath,
             resource_type: 'image',
             format: 'webp',
             quality: 'auto:good',
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
           },
           (error, result) => {
             if (error) reject(error);
