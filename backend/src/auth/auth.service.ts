@@ -332,6 +332,35 @@ export class AuthService {
     }
   }
 
+  async removeAvatar(userId: string) {
+    try {
+      // Update user's avatar in database to null
+      const updatedUser = await this.prismaService.user.update({
+        where: { id: userId },
+        data: { avatar: null },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          avatar: true,
+          isVerified: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Avatar removed successfully',
+        user: updatedUser,
+      };
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      throw new BadRequestException('Failed to remove avatar');
+    }
+  }
+
   async getUsers() {
     const users = await this.prismaService.user.findMany({
       select: {

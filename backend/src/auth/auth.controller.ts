@@ -201,6 +201,15 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Delete('profile/avatar')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove user avatar' })
+  @ApiResponse({ status: 200, description: 'Avatar removed successfully' })
+  async removeAvatar(@CurrentUser() user: any) {
+    return this.authService.removeAvatar(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get users for task assignment' })

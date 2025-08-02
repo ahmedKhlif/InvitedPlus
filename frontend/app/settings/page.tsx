@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import ProfilePictureUpload from '@/components/ui/ProfilePictureUpload';
 import {
   BellIcon,
   ShieldCheckIcon,
@@ -400,6 +401,23 @@ export default function SettingsPage() {
                 {/* Profile Settings */}
                 {activeTab === 'profile' && (
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
+                    {/* Profile Picture Section */}
+                    <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">Profile Picture</h3>
+                      <ProfilePictureUpload
+                        currentAvatar={user?.avatar}
+                        userName={user?.name || 'User'}
+                        onAvatarUpdate={(newAvatarUrl) => {
+                          setUser(prev => prev ? { ...prev, avatar: newAvatarUrl } : null);
+                        }}
+                        size="xl"
+                        editable={true}
+                      />
+                      <p className="text-sm text-gray-500 text-center max-w-md">
+                        Upload a profile picture to help others recognize you. Recommended size: 300x300px. Max file size: 5MB.
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Input
                         label="Full Name"

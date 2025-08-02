@@ -8,6 +8,7 @@ import { profileService } from '../../lib/services/profile';
 import { useToast } from '@/lib/contexts/ToastContext';
 import { CheckCircleIcon, ExclamationTriangleIcon, CameraIcon } from '@heroicons/react/24/outline';
 import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
+import ProfilePictureUpload from '@/components/ui/ProfilePictureUpload';
 
 interface User {
   id: string;
@@ -24,15 +25,12 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
   });
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
@@ -51,7 +49,6 @@ export default function ProfilePage() {
           name: response.user.name,
           email: response.user.email,
         });
-        setAvatarPreview(response.user.avatar ? `https://invitedplus-production.up.railway.app${response.user.avatar}` : '');
       } catch (error) {
         console.error('Failed to fetch profile:', error);
         localStorage.removeItem('token');
@@ -72,46 +69,7 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      showError('Error', 'Please select an image file');
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      showError('Error', 'Image size must be less than 5MB');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      // Convert to WebP for better performance
-      const webpFile = await profileService.convertToWebP(file);
-
-      // Upload avatar
-      const response = await profileService.uploadAvatar(webpFile);
-
-      // Update user state and preview
-      setUser(response.user);
-      setAvatarPreview(`https://invitedplus-production.up.railway.app${response.user.avatar}`);
-
-      showSuccess('Success', 'Profile picture updated successfully');
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      showError('Error', 'Failed to upload profile picture');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -274,41 +232,15 @@ export default function ProfilePage() {
           <div className="px-6 py-8 border-b border-gray-200">
             <div className="flex items-center space-x-6">
               {/* Avatar */}
-              <div className="relative">
-                <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center overflow-hidden">
-                  {avatarPreview || user.avatar ? (
-                    <img
-                      src={avatarPreview || `https://invitedplus-production.up.railway.app${user.avatar}`}
-                      alt={user.name}
-                      className="w-24 h-24 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-2xl font-bold text-white">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                {editing && (
-                  <button
-                    onClick={handleAvatarClick}
-                    disabled={uploading}
-                    className="absolute -bottom-2 -right-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-full p-2 shadow-lg transition-colors"
-                  >
-                    {uploading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <CameraIcon className="h-4 w-4" />
-                    )}
-                  </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </div>
+              <ProfilePictureUpload
+                currentAvatar={user.avatar}
+                userName={user.name}
+                onAvatarUpdate={(newAvatarUrl) => {
+                  setUser(prev => prev ? { ...prev, avatar: newAvatarUrl } : null);
+                }}
+                size="lg"
+                editable={editing}
+              />
               
               {/* User Info */}
               <div className="flex-1">

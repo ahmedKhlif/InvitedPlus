@@ -63,6 +63,12 @@ export const profileService = {
     return response.data;
   },
 
+  // Remove avatar
+  async removeAvatar(): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete('/auth/profile/avatar');
+    return response.data;
+  },
+
   // Convert image to WebP on frontend (optional optimization)
   async convertToWebP(file: File): Promise<File> {
     return new Promise((resolve, reject) => {
