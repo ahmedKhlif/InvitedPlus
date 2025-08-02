@@ -112,21 +112,8 @@ export class UploadService {
     }
 
     if (this.useCloudinary) {
-      // Use appropriate upload method based on file type
-      if (file.mimetype.startsWith('image/')) {
-        const result = await this.cloudinaryService.uploadImage(file);
-        return { url: result.url, filename: result.filename };
-      } else if (file.mimetype.startsWith('audio/')) {
-        const result = await this.cloudinaryService.uploadAudio(file);
-        return { url: result.url, filename: result.filename };
-      } else if (this.isDocumentType(file.mimetype)) {
-        const result = await this.cloudinaryService.uploadDocument(file);
-        return { url: result.url, filename: result.filename };
-      } else {
-        // For other file types, use the general upload method
-        const result = await this.cloudinaryService.uploadFile(file);
-        return { url: result.url, filename: result.filename };
-      }
+      const result = await this.cloudinaryService.uploadFile(file);
+      return { url: result.url, filename: result.filename };
     }
 
     // Fallback to local storage
@@ -139,23 +126,7 @@ export class UploadService {
     return { url: `/uploads/${folder}/${filename}`, filename };
   }
 
-  private isDocumentType(mimetype: string): boolean {
-    const documentTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'text/csv',
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/json'
-    ];
-    return documentTypes.includes(mimetype);
-  }
+
 
   private validateFile(file: Express.Multer.File) {
     if (file.size > this.maxFileSize) {
