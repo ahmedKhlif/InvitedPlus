@@ -48,6 +48,8 @@ export class CloudinaryService {
             folder: folderPath,
             use_filename: true,
             unique_filename: true,
+            // BYPASS UPLOAD PRESET - it might have restrictions
+            // upload_preset: this.uploadPreset, // REMOVED - might be blocking
             // FORCE PUBLIC ACCESS AND DELIVERY
             access_mode: 'public',
             type: 'upload',
@@ -55,11 +57,23 @@ export class CloudinaryService {
             // Additional flags to ensure public delivery
             delivery_type: 'upload',
             sign_url: false, // Don't sign URLs - keep them public
+            // Override any preset restrictions
+            overwrite: false,
             ...options,
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('❌ Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              console.log('✅ Upload result:', {
+                url: result.secure_url,
+                access_mode: result.access_mode,
+                delivery_type: result.delivery_type,
+                resource_type: result.resource_type
+              });
+              resolve(result);
+            }
           }
         );
         uploadStream.end(file.buffer);

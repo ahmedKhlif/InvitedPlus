@@ -7,18 +7,23 @@ import {
   UseGuards,
   Param,
   BadRequestException,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UploadService } from './upload.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @ApiTags('upload')
 @Controller('upload')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(
+    private readonly uploadService: UploadService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post('images/:type')
   @ApiOperation({ summary: 'Upload multiple images' })
@@ -111,5 +116,21 @@ export class UploadController {
       size: file.size,
       mimetype: file.mimetype,
     };
+  }
+
+  @Post('fix-access')
+  @ApiOperation({ summary: 'Fix access control for blocked Cloudinary files' })
+  @ApiResponse({ status: 200, description: 'File access fixed successfully' })
+  async fixFileAccess(@Body() body: { publicId: string; resourceType?: 'image' | 'video' | 'raw' }) {
+    try {
+      await this.cloudinaryService.makePublic(body.publicId, body.resourceType || 'image');
+      return {
+        success: true,
+        message: 'File access fixed successfully',
+        publicId: body.publicId,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to fix file access: ${error.message}`);
+    }
   }
 }
