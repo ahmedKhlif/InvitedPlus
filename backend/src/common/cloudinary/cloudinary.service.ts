@@ -46,6 +46,8 @@ export class CloudinaryService {
             folder: folderPath,
             use_filename: true,
             unique_filename: true,
+            access_mode: 'public', // Ensure public access
+            type: 'upload', // Ensure it's an upload type
             ...options,
           },
           (error, result) => {
@@ -108,6 +110,8 @@ export class CloudinaryService {
             fetch_format: 'auto',
             use_filename: true,
             unique_filename: true,
+            access_mode: 'public', // Ensure public access
+            type: 'upload', // Ensure it's an upload type
             ...options,
           },
           (error, result) => {
@@ -154,6 +158,8 @@ export class CloudinaryService {
             folder: folderPath,
             use_filename: true,
             unique_filename: true,
+            access_mode: 'public', // Ensure public access
+            type: 'upload', // Ensure it's an upload type
             ...options,
           },
           (error, result) => {

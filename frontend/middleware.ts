@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Permissions-Policy', 'microphone=*, camera=*, geolocation=*, autoplay=*, fullscreen=*, payment=*');
   response.headers.set('X-XSS-Protection', '1; mode=block');
 
   // Content Security Policy
@@ -16,10 +16,10 @@ export function middleware(request: NextRequest) {
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
+    "img-src 'self' data: https: res.cloudinary.com",
     "font-src 'self'",
-    "connect-src 'self' ws: wss: https:",
-    "media-src 'self'",
+    "connect-src 'self' ws: wss: https: res.cloudinary.com api.cloudinary.com",
+    "media-src 'self' blob: data: https: res.cloudinary.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
