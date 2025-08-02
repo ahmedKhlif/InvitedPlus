@@ -33,11 +33,19 @@ export class CloudinaryService {
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
+      // Generate simple folder structure to avoid template variable issues
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const folderPath = `invited-plus/uploads/${year}/${month}`;
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
             resource_type: 'auto',
+            folder: folderPath,
+            use_filename: true,
+            unique_filename: true,
             ...options,
           },
           (error, result) => {
@@ -84,14 +92,22 @@ export class CloudinaryService {
           .toBuffer();
       }
 
+      // Generate simple folder structure
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const folderPath = `invited-plus/images/${year}/${month}`;
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
             resource_type: 'image',
+            folder: folderPath,
             format: 'webp',
             quality: 'auto:good',
             fetch_format: 'auto',
+            use_filename: true,
+            unique_filename: true,
             ...options,
           },
           (error, result) => {
@@ -125,11 +141,19 @@ export class CloudinaryService {
         throw new BadRequestException('File must be an audio file');
       }
 
+      // Generate simple folder structure
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const folderPath = `invited-plus/audio/${year}/${month}`;
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            upload_preset: this.uploadPreset,
             resource_type: 'video', // Cloudinary uses 'video' for audio files
+            folder: folderPath,
+            use_filename: true,
+            unique_filename: true,
             ...options,
           },
           (error, result) => {
