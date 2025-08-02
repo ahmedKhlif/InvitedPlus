@@ -444,12 +444,32 @@ export class PrivateChatService {
     }
 
     // Validate file types
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    const allowedVoiceTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const allowedVoiceTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/mp3', 'audio/mp4'];
     const allowedFileTypes = [
-      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain', 'application/zip', 'application/x-rar-compressed'
+      // Documents
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      // Text files
+      'text/plain', // .txt
+      'text/markdown', // .md
+      'text/csv', // .csv
+      'text/html', // .html
+      'application/json', // .json
+      'application/xml', 'text/xml', // .xml
+      // Archives
+      'application/zip', 'application/x-zip-compressed',
+      'application/x-rar-compressed', 'application/x-7z-compressed',
+      // Other formats
+      'application/rtf', // .rtf
+      'application/vnd.oasis.opendocument.text', // .odt
+      'application/vnd.oasis.opendocument.spreadsheet', // .ods
+      'application/vnd.oasis.opendocument.presentation' // .odp
     ];
 
     if (type === 'image' && !allowedImageTypes.includes(file.mimetype)) {

@@ -301,9 +301,35 @@ export class ChatService {
     }
 
     // Validate file types
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    const allowedVoiceTypes = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg'];
-    const allowedFileTypes = [...allowedImageTypes, ...allowedVoiceTypes, 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    const allowedVoiceTypes = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3'];
+    const allowedFileTypes = [
+      ...allowedImageTypes,
+      ...allowedVoiceTypes,
+      // Documents
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      // Text files
+      'text/plain', // .txt
+      'text/markdown', // .md
+      'text/csv', // .csv
+      'text/html', // .html
+      'application/json', // .json
+      'application/xml', 'text/xml', // .xml
+      // Archives
+      'application/zip', 'application/x-zip-compressed',
+      'application/x-rar-compressed', 'application/x-7z-compressed',
+      // Other formats
+      'application/rtf', // .rtf
+      'application/vnd.oasis.opendocument.text', // .odt
+      'application/vnd.oasis.opendocument.spreadsheet', // .ods
+      'application/vnd.oasis.opendocument.presentation' // .odp
+    ];
 
     let isValidType = false;
     switch (mediaType) {

@@ -242,13 +242,36 @@ export class UploadService {
 
   async uploadChatFile(file: Express.Multer.File): Promise<string> {
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'audio/webm', 'audio/wav', 'audio/mp3', 'audio/ogg',
-      'application/pdf', 'text/plain', 'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/zip', 'application/x-zip-compressed'
+      // Images
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      // Audio
+      'audio/webm', 'audio/wav', 'audio/mp3', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
+      // Documents
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      // Text files
+      'text/plain', // .txt
+      'text/markdown', // .md
+      'text/csv', // .csv
+      'text/html', // .html
+      'text/css', // .css
+      'text/javascript', // .js
+      'application/json', // .json
+      'application/xml', // .xml
+      'text/xml', // .xml
+      // Archives
+      'application/zip', 'application/x-zip-compressed',
+      'application/x-rar-compressed', 'application/x-7z-compressed',
+      // Other common formats
+      'application/rtf', // .rtf
+      'application/vnd.oasis.opendocument.text', // .odt
+      'application/vnd.oasis.opendocument.spreadsheet', // .ods
+      'application/vnd.oasis.opendocument.presentation' // .odp
     ];
 
     if (!allowedTypes.includes(file.mimetype)) {
