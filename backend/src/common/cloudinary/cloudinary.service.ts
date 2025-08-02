@@ -28,33 +28,26 @@ export class CloudinaryService {
     console.log('Cloudinary Configured:', this.isConfigured() ? '✅ Yes' : '❌ No');
   }
 
-  private getResourceType(mimetype: string): string {
-    if (mimetype.startsWith('image/')) {
-      return 'image';
-    } else if (mimetype.startsWith('video/') || mimetype.startsWith('audio/')) {
-      return 'video';
-    } else {
-      return 'raw';
-    }
-  }
-
   async uploadFile(
     file: Express.Multer.File,
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
       // Determine resource type based on file type
-      const resourceType = this.getResourceType(file.mimetype);
-
-      // Create organized folder structure
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const folder = `invited-plus/${resourceType}/${currentDate}`;
+      let resourceType = 'auto';
+      if (file.mimetype.startsWith('image/')) {
+        resourceType = 'image';
+      } else if (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')) {
+        resourceType = 'video';
+      } else {
+        resourceType = 'raw'; // For PDFs and other documents
+      }
 
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            resource_type: resourceType === 'raw' ? 'raw' : 'auto',
-            folder: folder,
+            resource_type: resourceType,
+            folder: 'invited-plus/files',
             use_filename: true,
             unique_filename: true,
             ...options,
@@ -103,15 +96,11 @@ export class CloudinaryService {
           .toBuffer();
       }
 
-      // Create organized folder structure
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const folder = `invited-plus/image/${currentDate}`;
-
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
             resource_type: 'image',
-            folder: folder,
+            folder: 'invited-plus/images',
             format: 'webp',
             quality: 'auto:good',
             fetch_format: 'auto',
@@ -150,15 +139,11 @@ export class CloudinaryService {
         throw new BadRequestException('File must be an audio file');
       }
 
-      // Create organized folder structure
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const folder = `invited-plus/audio/${currentDate}`;
-
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
             resource_type: 'video', // Cloudinary uses 'video' for audio files
-            folder: folder,
+            folder: 'invited-plus/audio',
             use_filename: true,
             unique_filename: true,
             ...options,

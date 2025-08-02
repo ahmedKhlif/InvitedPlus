@@ -95,35 +95,19 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel, disabled 
       console.error('Error accessing microphone:', error);
 
       let errorMessage = 'Could not access microphone. ';
-      let instructions = '';
-
       if (error.name === 'NotAllowedError') {
-        errorMessage += 'Permission denied.';
-        instructions = `
-To fix this:
-1. Click the lock icon (🔒) in your browser's address bar
-2. Set "Microphone" to "Allow"
-3. Refresh the page and try again
-
-Or check your browser settings:
-• Chrome: Settings > Privacy and security > Site settings > Microphone
-• Firefox: Settings > Privacy & Security > Permissions > Microphone
-• Safari: Preferences > Websites > Microphone`;
+        errorMessage += 'Please allow microphone access in your browser settings and try again. You can usually find this in your browser\'s address bar or site settings.';
       } else if (error.name === 'NotFoundError') {
-        errorMessage += 'No microphone found.';
-        instructions = 'Please check that your microphone is connected and working.';
+        errorMessage += 'No microphone found. Please check your audio devices and make sure a microphone is connected.';
       } else if (error.name === 'NotSupportedError') {
-        errorMessage += 'Your browser does not support audio recording.';
-        instructions = 'Please try using a modern browser like Chrome, Firefox, or Safari.';
+        errorMessage += 'Your browser does not support audio recording. Please try using a modern browser like Chrome, Firefox, or Safari.';
+      } else if (error.message && error.message.includes('Permission denied')) {
+        errorMessage += 'Permission was denied. Please refresh the page and allow microphone access when prompted.';
       } else {
-        errorMessage += 'Please check your browser permissions and try again.';
-        instructions = 'Try refreshing the page or checking your microphone settings.';
+        errorMessage += 'Please check your browser permissions and try again. Make sure you\'re using HTTPS.';
       }
 
-      // Show a more detailed error message
-      if (confirm(`${errorMessage}\n\n${instructions}\n\nWould you like to go to the microphone test page for more help?`)) {
-        window.open('/test-microphone', '_blank');
-      }
+      alert(errorMessage);
     }
   };
 

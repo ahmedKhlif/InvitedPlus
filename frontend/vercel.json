@@ -1,1 +1,17 @@
-{}
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "microphone=*, camera=*, geolocation=*, autoplay=*, fullscreen=*, payment=*"
+        },
+        {
+          "key": "Feature-Policy",
+          "value": "microphone *; camera *; geolocation *; autoplay *; fullscreen *; payment *"
+        }
+      ]
+    }
+  ]
+}

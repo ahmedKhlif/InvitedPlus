@@ -56,7 +56,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: https:; script-src-elem 'self' 'unsafe-inline' blob: data: https:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https: res.cloudinary.com; media-src 'self' data: blob: https: res.cloudinary.com mediastream: 'unsafe-inline'; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app http://localhost:3001 ws://localhost:3001 blob: data: https: res.cloudinary.com api.cloudinary.com; font-src 'self' data: blob:; object-src 'self' blob: data:; base-uri 'self'; form-action 'self'; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data:;",
+            value: "default-src 'self' blob: data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data: https:; script-src-elem 'self' 'unsafe-inline' blob: data: https:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob: https: res.cloudinary.com; media-src 'self' data: blob: https: res.cloudinary.com 'unsafe-inline'; connect-src 'self' https://invitedplus-production.up.railway.app wss://invitedplus-production.up.railway.app http://localhost:3001 ws://localhost:3001 blob: data: https: res.cloudinary.com api.cloudinary.com; font-src 'self' data: blob:; object-src 'self' blob: data: res.cloudinary.com; base-uri 'self'; form-action 'self'; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' blob: data: res.cloudinary.com;",
           },
           {
             key: 'X-Frame-Options',
@@ -72,7 +72,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'microphone=(self "https://invited-plus.vercel.app" "http://localhost:3000"), camera=(self "https://invited-plus.vercel.app" "http://localhost:3000"), geolocation=(self), autoplay=(self)',
+            value: 'microphone=(self), camera=(self), geolocation=(self), autoplay=(self)',
           },
 
         ],
