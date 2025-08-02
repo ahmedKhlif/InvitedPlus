@@ -343,7 +343,6 @@ export class ChatService {
       } else if (mediaType === 'voice') {
         uploadResult = await this.uploadService.uploadAudio(file, 'chat-audio');
       } else {
-        // For files (PDFs, documents, etc.), use uploadFile method
         uploadResult = await this.uploadService.uploadFile(file, 'chat-files');
       }
 

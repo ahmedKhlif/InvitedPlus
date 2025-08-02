@@ -33,23 +33,13 @@ export class CloudinaryService {
     options: any = {}
   ): Promise<{ url: string; publicId: string; filename: string }> {
     try {
-      // Determine resource type based on file type
-      let resourceType = 'auto';
-      if (file.mimetype.startsWith('image/')) {
-        resourceType = 'image';
-      } else if (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')) {
-        resourceType = 'video';
-      } else {
-        resourceType = 'raw'; // For PDFs and other documents
-      }
-
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            resource_type: resourceType,
-            folder: 'invited-plus/files',
-            use_filename: true,
-            unique_filename: true,
+            upload_preset: this.uploadPreset,
+            resource_type: 'auto',
+            // Don't specify folder - preset handles organization with public_id_prefix
+            // Don't specify use_filename/unique_filename - preset handles this
             ...options,
           },
           (error, result) => {
@@ -99,13 +89,12 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
+            upload_preset: this.uploadPreset,
             resource_type: 'image',
-            folder: 'invited-plus/images',
             format: 'webp',
             quality: 'auto:good',
             fetch_format: 'auto',
-            use_filename: true,
-            unique_filename: true,
+            // Preset handles: use_filename, unique_filename, overwrite, folder organization
             ...options,
           },
           (error, result) => {
@@ -142,10 +131,9 @@ export class CloudinaryService {
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
+            upload_preset: this.uploadPreset,
             resource_type: 'video', // Cloudinary uses 'video' for audio files
-            folder: 'invited-plus/audio',
-            use_filename: true,
-            unique_filename: true,
+            // Preset handles: use_filename, unique_filename, overwrite, folder organization
             ...options,
           },
           (error, result) => {

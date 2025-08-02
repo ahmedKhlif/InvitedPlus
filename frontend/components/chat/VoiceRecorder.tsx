@@ -96,15 +96,13 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel, disabled 
 
       let errorMessage = 'Could not access microphone. ';
       if (error.name === 'NotAllowedError') {
-        errorMessage += 'Please allow microphone access in your browser settings and try again. You can usually find this in your browser\'s address bar or site settings.';
+        errorMessage += 'Please allow microphone access in your browser settings and try again.';
       } else if (error.name === 'NotFoundError') {
-        errorMessage += 'No microphone found. Please check your audio devices and make sure a microphone is connected.';
+        errorMessage += 'No microphone found. Please check your audio devices.';
       } else if (error.name === 'NotSupportedError') {
-        errorMessage += 'Your browser does not support audio recording. Please try using a modern browser like Chrome, Firefox, or Safari.';
-      } else if (error.message && error.message.includes('Permission denied')) {
-        errorMessage += 'Permission was denied. Please refresh the page and allow microphone access when prompted.';
+        errorMessage += 'Your browser does not support audio recording.';
       } else {
-        errorMessage += 'Please check your browser permissions and try again. Make sure you\'re using HTTPS.';
+        errorMessage += 'Please check your browser permissions and try again.';
       }
 
       alert(errorMessage);
