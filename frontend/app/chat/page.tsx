@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { chatService, authService, eventsService } from '@/lib/services';
+import { websocketService } from '@/lib/websocket';
 import { PaperAirplaneIcon, UserIcon, PhotoIcon, MicrophoneIcon, PaperClipIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
 import api from '@/lib/api';
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -54,6 +55,8 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +64,69 @@ export default function ChatPage() {
 
   // Popular emojis for quick reactions
   const popularEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+
+  // WebSocket functions
+  const initializeWebSocket = async () => {
+    try {
+      await websocketService.connect();
+      setIsConnected(true);
+
+      // Join the appropriate chat room
+      websocketService.joinChat(selectedEventId || undefined);
+
+      // Set up event listeners
+      websocketService.onNewMessage(handleNewMessage);
+      websocketService.onUserTyping(handleUserTyping);
+
+    } catch (error) {
+      console.error('Failed to connect to WebSocket:', error);
+      setIsConnected(false);
+    }
+  };
+
+  const cleanupWebSocket = () => {
+    if (websocketService.isConnected()) {
+      websocketService.leaveChat(selectedEventId || undefined);
+      websocketService.off('chat:new_message', handleNewMessage);
+      websocketService.off('chat:user_typing', handleUserTyping);
+    }
+  };
+
+  const handleNewMessage = (data: any) => {
+    // Only add message if it's for the current chat (global or specific event)
+    const isForCurrentChat = (!selectedEventId && !data.eventId) || (selectedEventId === data.eventId);
+
+    if (isForCurrentChat) {
+      const message: Message = {
+        id: data.id,
+        content: data.message,
+        type: 'TEXT',
+        senderId: data.userId,
+        sender: {
+          id: data.userId,
+          name: data.userEmail?.split('@')[0] || 'Unknown',
+          email: data.userEmail
+        },
+        createdAt: data.timestamp,
+        updatedAt: data.timestamp,
+        reactions: []
+      };
+
+      setMessages(prev => [...prev, message]);
+    }
+  };
+
+  const handleUserTyping = (data: any) => {
+    const isForCurrentChat = (!selectedEventId && !data.eventId) || (selectedEventId === data.eventId);
+
+    if (isForCurrentChat && data.userId !== user?.id) {
+      if (data.isTyping) {
+        setTypingUsers(prev => [...prev.filter(id => id !== data.userId), data.userId]);
+      } else {
+        setTypingUsers(prev => prev.filter(id => id !== data.userId));
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,6 +146,9 @@ export default function ChatPage() {
 
         // Fetch messages
         await fetchMessages();
+
+        // Initialize WebSocket connection
+        await initializeWebSocket();
       } catch (error: any) {
         console.error('Failed to fetch data:', error);
         setError('Failed to load chat data');
@@ -92,7 +161,26 @@ export default function ChatPage() {
     };
 
     fetchData();
+
+    // Cleanup WebSocket on unmount
+    return () => {
+      cleanupWebSocket();
+    };
   }, [router]);
+
+  // Handle event selection changes
+  useEffect(() => {
+    if (isConnected) {
+      // Leave current chat room
+      websocketService.leaveChat(selectedEventId || undefined);
+
+      // Join new chat room
+      websocketService.joinChat(selectedEventId || undefined);
+
+      // Fetch messages for the new selection
+      fetchMessages();
+    }
+  }, [selectedEventId, isConnected]);
 
   const fetchMessages = async () => {
     try {
@@ -137,14 +225,20 @@ export default function ChatPage() {
 
     setSending(true);
     try {
+      // Send message via API (for persistence)
       await chatService.sendMessage({
         content: newMessage.trim(),
         eventId: selectedEventId || undefined
       });
 
+      // Also send via WebSocket for real-time delivery
+      if (isConnected) {
+        const messageId = `msg-${Date.now()}-${Math.random()}`;
+        websocketService.sendMessage(selectedEventId || null, newMessage.trim(), messageId);
+      }
+
       setNewMessage('');
-      // Refresh messages
-      await fetchMessages();
+      // Don't refresh messages here - WebSocket will handle real-time updates
     } catch (error: any) {
       console.error('Failed to send message:', error);
       setError('Failed to send message');
@@ -290,7 +384,20 @@ export default function ChatPage() {
               >
                 ← Back to Dashboard
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Event Chat</h1>
+              <div className="flex items-center space-x-3">
+                <h1 className="text-3xl font-bold text-gray-900">Event Chat</h1>
+                {/* Connection Status */}
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                  isConnected
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    isConnected ? 'bg-green-500' : 'bg-red-500'
+                  }`}></div>
+                  <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <select
@@ -431,6 +538,24 @@ export default function ChatPage() {
                 </div>
               );
             })}
+
+            {/* Typing Indicators */}
+            {typingUsers.length > 0 && (
+              <div className="flex items-center space-x-2 text-sm text-gray-500 italic">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+                <span>
+                  {typingUsers.length === 1
+                    ? 'Someone is typing...'
+                    : `${typingUsers.length} people are typing...`
+                  }
+                </span>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -490,7 +615,13 @@ export default function ChatPage() {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    // Send typing indicator
+                    if (isConnected) {
+                      websocketService.sendTyping(selectedEventId || null, e.target.value.length > 0);
+                    }
+                  }}
                   placeholder="Type your message..."
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={sending || uploading}

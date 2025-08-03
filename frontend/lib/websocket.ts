@@ -78,20 +78,20 @@ class WebSocketService {
   }
 
   // Chat methods
-  joinChat(eventId: string) {
-    this.socket?.emit('chat:join', { eventId });
+  joinChat(eventId?: string) {
+    this.socket?.emit('chat:join', { eventId: eventId || null });
   }
 
-  leaveChat(eventId: string) {
-    this.socket?.emit('chat:leave', { eventId });
+  leaveChat(eventId?: string) {
+    this.socket?.emit('chat:leave', { eventId: eventId || null });
   }
 
-  sendMessage(eventId: string, message: string, messageId: string) {
-    this.socket?.emit('chat:message', { eventId, message, messageId });
+  sendMessage(eventId: string | null, message: string, messageId: string) {
+    this.socket?.emit('chat:message', { eventId: eventId || null, message, messageId });
   }
 
-  sendTyping(eventId: string, isTyping: boolean) {
-    this.socket?.emit('chat:typing', { eventId, isTyping });
+  sendTyping(eventId: string | null, isTyping: boolean) {
+    this.socket?.emit('chat:typing', { eventId: eventId || null, isTyping });
   }
 
   onNewMessage(callback: (data: any) => void) {

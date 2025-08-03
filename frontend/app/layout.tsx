@@ -13,10 +13,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'Invited+ Team' }],
   icons: {
     icon: [
+      { url: '/favIcon.png', type: 'image/png' },
       { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    shortcut: '/favIcon.png',
+    apple: '/favIcon.png',
   },
 
 };
