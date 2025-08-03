@@ -60,8 +60,25 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
         return;
       }
 
-      // Verify JWT token
-      const payload = this.jwtService.verify(token);
+      // Verify JWT token with proper error handling
+      let payload: any;
+      try {
+        payload = this.jwtService.verify(token);
+      } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          console.log('WebSocket connection rejected: Token expired');
+          client.emit('auth_error', { message: 'Token expired', code: 'TOKEN_EXPIRED' });
+        } else if (error.name === 'JsonWebTokenError') {
+          console.log('WebSocket connection rejected: Invalid token');
+          client.emit('auth_error', { message: 'Invalid token', code: 'INVALID_TOKEN' });
+        } else {
+          console.log('WebSocket connection rejected: Authentication failed', error.message);
+          client.emit('auth_error', { message: 'Authentication failed', code: 'AUTH_FAILED' });
+        }
+        client.disconnect();
+        return;
+      }
+
       client.userId = payload.sub || payload.userId;
       client.userEmail = payload.email;
 

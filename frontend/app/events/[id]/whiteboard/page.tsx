@@ -262,6 +262,35 @@ export default function EventWhiteboardPage() {
     setNotificationQueue(prev => ({ ...prev, [key]: timeoutId }));
   }, [showSuccess, showError, notificationQueue]);
 
+  // Token refresh helper
+  const refreshToken = async (): Promise<string | null> => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        return null;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app'}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newToken = data.accessToken;
+        localStorage.setItem('token', newToken);
+        return newToken;
+      }
+      return null;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return null;
+    }
+  };
+
   // Initialize socket connection for real-time collaboration
   const initializeSocket = useCallback(() => {
     if (socket || !currentUser) return;
@@ -270,10 +299,20 @@ export default function EventWhiteboardPage() {
     setIsConnecting(true);
     setConnectionStatus('connecting');
 
+    // Get fresh token for connection
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token available for WebSocket connection');
+      setConnectionStatus('disconnected');
+      setIsConnecting(false);
+      debouncedNotification('auth-error', 'Please log in to use whiteboard collaboration', 'error');
+      return;
+    }
+
     const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app', {
       transports: ['websocket', 'polling'],
       auth: {
-        token: localStorage.getItem('token')
+        token: token
       }
     });
 
@@ -293,6 +332,40 @@ export default function EventWhiteboardPage() {
       setConnectionStatus('disconnected');
       setIsConnecting(false);
       debouncedNotification('connection-error', 'Connection issues detected', 'error');
+    });
+
+    newSocket.on('auth_error', async (error) => {
+      console.error('WebSocket authentication error:', error);
+      setConnectionStatus('disconnected');
+      setIsConnecting(false);
+
+      if (error.code === 'TOKEN_EXPIRED') {
+        debouncedNotification('auth-error', 'Session expired. Attempting to refresh...', 'error');
+
+        // Try to refresh the token
+        const newToken = await refreshToken();
+        if (newToken) {
+          debouncedNotification('auth-success', 'Session refreshed. Reconnecting...', 'success');
+          // Reconnect with new token
+          setTimeout(() => {
+            if (socket) {
+              socket.disconnect();
+              setSocket(null);
+            }
+            initializeSocket();
+          }, 1000);
+        } else {
+          debouncedNotification('auth-error', 'Session expired. Please log in again.', 'error');
+          setTimeout(() => {
+            window.location.href = '/auth/login';
+          }, 3000);
+        }
+      } else {
+        debouncedNotification('auth-error', 'Authentication failed. Please log in again.', 'error');
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 3000);
+      }
     });
 
     newSocket.on('disconnect', (reason) => {
