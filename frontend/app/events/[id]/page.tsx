@@ -110,31 +110,6 @@ export default function EventDetailPage() {
     }
   };
 
-  const handleKickUser = async (participantId: string, participantName: string) => {
-    if (!event || !currentUser) return;
-
-    const confirmKick = window.confirm(
-      `Are you sure you want to remove ${participantName} from "${event.title}"? They will be notified of this action.`
-    );
-
-    if (!confirmKick) return;
-
-    try {
-      await api.delete(`/events/${event.id}/participants/${participantId}`);
-
-      // Update the local state to remove the kicked user
-      setEvent(prev => prev ? {
-        ...prev,
-        attendees: prev.attendees.filter(attendee => attendee.user.id !== participantId)
-      } : null);
-
-      alert(`${participantName} has been removed from the event.`);
-    } catch (error: any) {
-      console.error('Failed to kick user:', error);
-      alert(error.response?.data?.message || 'Failed to remove user. Please try again.');
-    }
-  };
-
   // Check if current user is the organizer or admin
   const canEditEvent = currentUser && event && (
     currentUser.id === event.organizer.id ||
@@ -348,52 +323,29 @@ export default function EventDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {event.attendees.map((attendee) => (
-                      <div key={attendee.id} className="flex items-center justify-between">
-                        <div className="flex items-center flex-1">
-                          <div className="relative mr-3">
-                            {(attendee.user as any).avatar ? (
-                              <img
-                                src={`http://localhost:3001${(attendee.user as any).avatar}`}
-                                alt={attendee.user.name}
-                                className="w-8 h-8 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-medium text-white">
-                                  {attendee.user.name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center">
-                              <p className="text-gray-900 font-medium">{attendee.user.name}</p>
-                              {attendee.user.id === event.organizer.id && (
-                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                  Organizer
-                                </span>
-                              )}
+                      <div key={attendee.id} className="flex items-center">
+                        <div className="relative mr-3">
+                          {(attendee.user as any).avatar ? (
+                            <img
+                              src={`http://localhost:3001${(attendee.user as any).avatar}`}
+                              alt={attendee.user.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                {attendee.user.name.charAt(0).toUpperCase()}
+                              </span>
                             </div>
-                            <p className="text-gray-500 text-sm">{attendee.user.email}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                          <span className="text-xs text-gray-500">
-                            {new Date(attendee.joinedAt).toLocaleDateString()}
-                          </span>
-
-                          {/* Kick button - only show for organizers and not for the organizer themselves */}
-                          {canEditEvent && attendee.user.id !== event.organizer.id && (
-                            <button
-                              onClick={() => handleKickUser(attendee.user.id, attendee.user.name)}
-                              className="inline-flex items-center px-2 py-1 border border-red-300 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-colors"
-                              title={`Remove ${attendee.user.name} from event`}
-                            >
-                              Remove
-                            </button>
                           )}
                         </div>
+                        <div className="flex-1">
+                          <p className="text-gray-900 font-medium">{attendee.user.name}</p>
+                          <p className="text-gray-500 text-sm">{attendee.user.email}</p>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(attendee.joinedAt).toLocaleDateString()}
+                        </span>
                       </div>
                     ))}
                   </div>

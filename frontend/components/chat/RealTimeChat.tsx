@@ -3,14 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { websocketService } from '@/lib/websocket';
 import { authService } from '@/lib/services';
-import {
+import { 
   PaperAirplaneIcon,
   FaceSmileIcon,
   PaperClipIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
-import MessageActions from './MessageActions';
-import { chatService } from '@/lib/services/chat';
 
 interface Message {
   id: string;
@@ -245,17 +243,6 @@ export default function RealTimeChat({ eventId, className = '' }: RealTimeChatPr
     return email.split('@')[0].charAt(0).toUpperCase();
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    try {
-      await chatService.deleteMessage(messageId);
-      // Remove the message from the local state
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
-    } catch (error: any) {
-      console.error('Failed to delete message:', error);
-      throw error; // Re-throw to let MessageActions handle the error display
-    }
-  };
-
   return (
     <div className={`flex flex-col h-full bg-white rounded-lg shadow ${className}`}>
       {/* Header */}
@@ -288,7 +275,7 @@ export default function RealTimeChat({ eventId, className = '' }: RealTimeChatPr
               )}
               
               {/* Message Content */}
-              <div className={`group relative rounded-lg px-3 py-2 ${
+              <div className={`rounded-lg px-3 py-2 ${
                 message.userId === 'system'
                   ? 'bg-gray-100 text-gray-600 text-center text-sm italic'
                   : message.isOwn
@@ -310,17 +297,6 @@ export default function RealTimeChat({ eventId, className = '' }: RealTimeChatPr
                 }`}>
                   {formatTimestamp(message.timestamp)}
                 </div>
-
-                {/* Message Actions - only show for non-system messages */}
-                {message.userId !== 'system' && (
-                  <MessageActions
-                    messageId={message.id}
-                    isOwnMessage={message.isOwn || false}
-                    isEventMessage={true}
-                    onDelete={handleDeleteMessage}
-                    className="absolute top-2 right-2"
-                  />
-                )}
               </div>
             </div>
           </div>

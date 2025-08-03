@@ -19,11 +19,7 @@ interface AuthenticatedSocket extends Socket {
 @Injectable()
 @WSGateway({
   cors: {
-    origin: [
-      'https://invited-plus.vercel.app',
-      'http://localhost:3000',
-      /https:\/\/.*\.vercel\.app$/
-    ],
+    origin: process.env.FRONTEND_URL || 'https://invited-plus.vercel.app',
     credentials: true,
   },
   namespace: '/',
@@ -31,8 +27,6 @@ interface AuthenticatedSocket extends Socket {
   pingInterval: 25000,
   maxHttpBufferSize: 1e6,
   transports: ['websocket', 'polling'],
-  allowEIO3: true, // Allow Engine.IO v3 clients
-  serveClient: false, // Don't serve client files
 })
 export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -88,13 +82,11 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
         this.connectionAttempts.set(client.userId, { count: 1, lastAttempt: now });
       }
 
-      // Check if user already has a connection - prevent duplicates
+      // Check if user already has a connection
       const existingConnection = this.connectedUsers.get(client.userId);
-      if (existingConnection && existingConnection.connected && existingConnection.id !== client.id) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`User ${client.userEmail} already connected, disconnecting old connection`);
-        }
-        existingConnection.disconnect(true);
+      if (existingConnection && existingConnection.connected) {
+        console.log(`User ${client.userEmail} already connected, disconnecting old connection`);
+        existingConnection.disconnect();
       }
 
       // Store connected user
@@ -103,10 +95,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       // Join user to their personal room
       client.join(`user:${client.userId}`);
 
-      // Reduced logging to prevent rate limits
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`User connected: ${client.userEmail}`);
-      }
+      console.log(`User connected to whiteboard: ${client.id}`);
 
     } catch (error) {
       console.error('WebSocket authentication failed:', error);
@@ -153,12 +142,11 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @SubscribeMessage('chat:join')
   handleJoinChat(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { eventId?: string }
+    @MessageBody() data: { eventId: string }
   ) {
-    // Handle both global chat and event-specific chat
-    const room = data.eventId ? `chat:${data.eventId}` : 'chat:global';
+    const room = `chat:${data.eventId}`;
     client.join(room);
-
+    
     // Track user rooms
     if (!this.userRooms.has(client.userId)) {
       this.userRooms.set(client.userId, new Set());
@@ -169,25 +157,19 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     client.to(room).emit('chat:user_joined', {
       userId: client.userId,
       email: client.userEmail,
-      eventId: data.eventId || null,
+      eventId: data.eventId,
       timestamp: new Date().toISOString(),
     });
-
-    // Reduced logging for production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`User ${client.userEmail} joined ${data.eventId ? `event chat ${data.eventId}` : 'global chat'}`);
-    }
   }
 
   @SubscribeMessage('chat:leave')
   handleLeaveChat(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { eventId?: string }
+    @MessageBody() data: { eventId: string }
   ) {
-    // Handle both global chat and event-specific chat
-    const room = data.eventId ? `chat:${data.eventId}` : 'chat:global';
+    const room = `chat:${data.eventId}`;
     client.leave(room);
-
+    
     // Remove from user rooms
     const userRooms = this.userRooms.get(client.userId);
     if (userRooms) {
@@ -198,20 +180,17 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     client.to(room).emit('chat:user_left', {
       userId: client.userId,
       email: client.userEmail,
-      eventId: data.eventId || null,
+      eventId: data.eventId,
       timestamp: new Date().toISOString(),
     });
-
-    console.log(`User ${client.userEmail} left ${data.eventId ? `event chat ${data.eventId}` : 'global chat'}`);
   }
 
   @SubscribeMessage('chat:message')
   handleChatMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { eventId?: string; message: string; messageId: string }
+    @MessageBody() data: { eventId: string; message: string; messageId: string }
   ) {
-    // Handle both global chat and event-specific chat
-    const room = data.eventId ? `chat:${data.eventId}` : 'chat:global';
+    const room = `chat:${data.eventId}`;
 
     // Broadcast message to all users in the chat room
     this.server.to(room).emit('chat:new_message', {
@@ -219,14 +198,9 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       message: data.message,
       userId: client.userId,
       userEmail: client.userEmail,
-      eventId: data.eventId || null,
+      eventId: data.eventId,
       timestamp: new Date().toISOString(),
     });
-
-    // Reduced logging for production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Message sent in ${data.eventId ? `event chat ${data.eventId}` : 'global chat'} by ${client.userEmail}`);
-    }
   }
 
   @SubscribeMessage('private_chat:join')
@@ -281,16 +255,15 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @SubscribeMessage('chat:typing')
   handleTyping(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { eventId?: string; isTyping: boolean }
+    @MessageBody() data: { eventId: string; isTyping: boolean }
   ) {
-    // Handle both global chat and event-specific chat
-    const room = data.eventId ? `chat:${data.eventId}` : 'chat:global';
-
+    const room = `chat:${data.eventId}`;
+    
     // Broadcast typing status to others in the room
     client.to(room).emit('chat:user_typing', {
       userId: client.userId,
       userEmail: client.userEmail,
-      eventId: data.eventId || null,
+      eventId: data.eventId,
       isTyping: data.isTyping,
       timestamp: new Date().toISOString(),
     });
@@ -514,10 +487,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     const eventId = data.roomId.replace('event-', '');
     const roomId = `whiteboard:${eventId}`;
 
-    // Reduced logging for production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Element added by ${client.userId} in room ${roomId}:`, data.element.type);
-    }
+    console.log(`Element added by ${client.userId} in room ${roomId}:`, data.element.type);
 
     // Add element to room state
     if (!this.whiteboardElements.has(roomId)) {
@@ -586,10 +556,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     const eventId = data.roomId.replace('event-', '');
     const roomId = `whiteboard:${eventId}`;
 
-    // Reduced logging for production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Whiteboard cleared by ${client.userId} in room ${roomId}`);
-    }
+    console.log(`Whiteboard cleared by ${client.userId} in room ${roomId}`);
 
     // Clear elements for this room
     this.whiteboardElements.set(roomId, []);

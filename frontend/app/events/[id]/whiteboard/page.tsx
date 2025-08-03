@@ -6,7 +6,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useToast } from '@/lib/contexts/ToastContext';
 import { Button } from '@/components/ui/Button';
-import { websocketService } from '@/lib/websocket';
+import io from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ArrowLeftIcon,
@@ -263,8 +263,8 @@ export default function EventWhiteboardPage() {
     setNotificationQueue(prev => ({ ...prev, [key]: timeoutId }));
   }, [showSuccess, showError, notificationQueue]);
 
-  // Initialize socket connection for real-time collaboration using centralized service
-  const initializeSocket = useCallback(async () => {
+  // Initialize socket connection for real-time collaboration
+  const initializeSocket = useCallback(() => {
     // CRITICAL: Multiple layers of connection prevention
     if (connectionLockRef.current) {
       console.log('🔒 Connection locked, preventing duplicate connection');
@@ -281,35 +281,57 @@ export default function EventWhiteboardPage() {
     setIsConnecting(true);
     setConnectionStatus('connecting');
 
-    console.log('🔌 Using centralized WebSocket service for whiteboard collaboration...');
+    console.log('🔌 Creating NEW socket connection...');
 
-    try {
-      // Use the centralized WebSocket service instead of creating a new connection
-      const newSocket = await websocketService.connect();
+    // Disconnect existing socket first
+    if (socket) {
+      console.log('🔌 Disconnecting existing socket before creating new one');
+      socket.removeAllListeners();
+      socket.disconnect(true);
+      setSocket(null);
+    }
 
-      if (!newSocket) {
-        throw new Error('Failed to connect to WebSocket service');
-      }
+    // Get authentication token
+    const token = localStorage.getItem('token');
 
-      newSocket.on('connect', () => {
-        console.log('🔗 Connected to whiteboard collaboration');
-        setConnectionStatus('connected');
-        setIsConnecting(false);
-        connectionLockRef.current = false; // Unlock after successful connection
-        newSocket.emit('join-whiteboard', {
-          eventId,
-          whiteboardId: currentWhiteboard?.id,
-          user: currentUser
-        });
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://invitedplus-production.up.railway.app', {
+      auth: {
+        token: token
+      },
+      query: {
+        eventId,
+        userId: currentUser?.id,
+        whiteboardId: currentWhiteboard?.id
+      },
+      transports: ['websocket', 'polling'],
+      timeout: 10000, // Reduced timeout
+      reconnection: true,
+      reconnectionAttempts: 3, // Reduced attempts
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 5000,
+      forceNew: true, // Force new connection to prevent conflicts
+      autoConnect: true,
+    });
+
+    newSocket.on('connect', () => {
+      console.log('🔗 Connected to whiteboard collaboration');
+      setConnectionStatus('connected');
+      setIsConnecting(false);
+      connectionLockRef.current = false; // Unlock after successful connection
+      newSocket.emit('join-whiteboard', {
+        eventId,
+        whiteboardId: currentWhiteboard?.id,
+        user: currentUser
       });
+    });
 
-      newSocket.on('connect_error', (error) => {
-        console.error('WebSocket connection error:', error);
-        setConnectionStatus('disconnected');
-        setIsConnecting(false);
-        connectionLockRef.current = false; // Unlock on error
-        debouncedNotification('connection-error', 'Connection issues detected', 'error');
-      });
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+      setConnectionStatus('disconnected');
+      setIsConnecting(false);
+      connectionLockRef.current = false; // Unlock on error
+      debouncedNotification('connection-error', 'Connection issues detected', 'error');
+    });
 
     newSocket.on('disconnect', (reason) => {
       console.log('WebSocket disconnected:', reason);
@@ -385,19 +407,11 @@ export default function EventWhiteboardPage() {
       debouncedNotification('socket-error', error.message || 'Connection error', 'error');
     });
 
-      setSocket(newSocket);
+    setSocket(newSocket);
 
-      return () => {
-        newSocket.disconnect();
-      };
-    } catch (error) {
-      console.error('Failed to initialize WebSocket connection:', error);
-      setConnectionStatus('disconnected');
-      setIsConnecting(false);
-      connectionLockRef.current = false;
-      debouncedNotification('connection-error', 'Failed to connect to collaboration service', 'error');
-      return () => {};
-    }
+    return () => {
+      newSocket.disconnect();
+    };
   }, [eventId, currentUser, currentWhiteboard?.id, debouncedNotification]);
 
   // Fetch whiteboards
@@ -551,26 +565,8 @@ export default function EventWhiteboardPage() {
   useEffect(() => {
     if (currentUser && !socket && !isConnecting && !connectionLockRef.current) {
       console.log('🔌 Initializing socket for user:', currentUser.name);
-
-      // Handle async initialization
-      const initSocket = async () => {
-        const cleanup = await initializeSocket();
-        return cleanup;
-      };
-
-      initSocket().catch(error => {
-        console.error('Failed to initialize socket:', error);
-        setConnectionStatus('disconnected');
-        setIsConnecting(false);
-        connectionLockRef.current = false;
-      });
-
-      // Return cleanup function
-      return () => {
-        if (socket) {
-          socket.disconnect();
-        }
-      };
+      const cleanup = initializeSocket();
+      return cleanup;
     } else if (currentUser && (socket || isConnecting || connectionLockRef.current)) {
       console.log('⏭️ Skipping socket init - already exists or connecting');
     }

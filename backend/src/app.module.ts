@@ -20,7 +20,6 @@ import { FriendsModule } from './friends/friends.module';
 import { PrivateChatModule } from './private-chat/private-chat.module';
 import { WhiteboardModule } from './whiteboard/whiteboard.module';
 import { HealthModule } from './health/health.module';
-import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -60,7 +59,6 @@ import { WebSocketModule } from './websocket/websocket.module';
     PrivateChatModule,
     WhiteboardModule,
     HealthModule,
-    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

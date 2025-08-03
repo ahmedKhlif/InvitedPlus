@@ -4,6 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { Server } from 'socket.io';
+import WhiteboardCollaborationService from './services/whiteboard-collaboration.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -73,17 +75,41 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.BACKEND_PORT || 3001;
-  await app.listen(port);
+  const server = await app.listen(port);
 
-  // Note: Socket.IO server is now handled by the WebSocket Gateway
-  // The whiteboard collaboration will be integrated into the main gateway
+  // Setup Socket.IO for real-time collaboration
+  const io = new Server(server, {
+    cors: {
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, etc.)
+        if (!origin) return callback(null, true);
 
-  // Reduced logging for production to prevent rate limits
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`🚀 Application is running on: https://invitedplus-production.up.railway.app`);
-    console.log(`📚 API Documentation: https://invitedplus-production.up.railway.app/api/docs`);
-    console.log(`🔗 Socket.IO server initialized for real-time collaboration`);
-  }
+        // Check if origin is in allowed list
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Check if origin matches Vercel preview pattern
+        if (process.env.NODE_ENV === 'production' && /https:\/\/.*\.vercel\.app$/.test(origin)) {
+          return callback(null, true);
+        }
+
+        // Reject origin
+        callback(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+      methods: ['GET', 'POST'],
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+  });
+
+  // Initialize whiteboard collaboration service
+  new WhiteboardCollaborationService(io);
+
+  console.log(`🚀 Application is running on: https://invitedplus-production.up.railway.app`);
+  console.log(`📚 API Documentation: https://invitedplus-production.up.railway.app/api/docs`);
+  console.log(`🔗 Socket.IO server initialized for real-time collaboration`);
 }
 
 bootstrap();
