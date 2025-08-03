@@ -677,13 +677,17 @@ export default function EventWhiteboardPage() {
       }
 
       ctx.beginPath();
+      console.log('🎨 Drawing line with points:', element.points.length, 'loop will run:', Math.floor(element.points.length / 2), 'times');
       for (let i = 0; i < element.points.length; i += 2) {
         if (i === 0) {
+          console.log('📍 moveTo:', element.points[i], element.points[i + 1]);
           ctx.moveTo(element.points[i], element.points[i + 1]);
         } else {
+          console.log('📏 lineTo:', element.points[i], element.points[i + 1]);
           ctx.lineTo(element.points[i], element.points[i + 1]);
         }
       }
+      console.log('✅ Calling ctx.stroke() to render line');
       ctx.stroke();
     } else if (element.type === 'rectangle') {
       ctx.strokeStyle = element.stroke || brushColor;
