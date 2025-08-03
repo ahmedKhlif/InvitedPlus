@@ -688,42 +688,25 @@ export default function EventWhiteboardPage() {
       ctx.font = `${element.fontSize || fontSize}px Arial`;
       ctx.fillText(element.text!, element.x!, element.y!);
     } else if (element.type === 'image' && element.imageUrl) {
-      // Skip broken blob URLs immediately
+      // Skip broken blob URLs immediately (not accessible from other users)
       if (element.imageUrl.startsWith('blob:')) {
         console.warn('Skipping blob URL image element (not accessible from other users)');
         return;
       }
 
-      // For server images, draw placeholder immediately and try to load image
-      const drawPlaceholder = () => {
-        ctx.strokeStyle = '#ddd';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(element.x!, element.y!, element.width!, element.height!);
-        ctx.fillStyle = '#f8f8f8';
-        ctx.fillRect(element.x!, element.y!, element.width!, element.height!);
-        ctx.fillStyle = '#999';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('📷 Image', element.x! + element.width! / 2, element.y! + element.height! / 2);
-      };
-
-      // Draw placeholder first
-      drawPlaceholder();
-
-      // Try to load the actual image asynchronously
+      // Try to load and draw the image
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
-          // Redraw the canvas to replace placeholder with actual image
-          setTimeout(() => redrawCanvas(), 0);
+          ctx.drawImage(img, element.x!, element.y!, element.width!, element.height!);
         } catch (error) {
-          console.warn('Failed to redraw after image load:', error);
+          console.warn('Failed to draw image element:', error);
         }
       };
       img.onerror = () => {
-        console.warn('Failed to load image:', element.imageUrl);
-        // Placeholder is already drawn, no need to do anything
+        console.warn('Failed to load image, skipping:', element.imageUrl);
+        // Don't draw anything - just skip the broken image completely
       };
 
       // Set image source
@@ -767,15 +750,23 @@ export default function EventWhiteboardPage() {
       ctx.stroke();
     }
 
-    // Draw all elements (with better error handling)
-    elements.forEach(element => {
-      try {
-        drawElement(ctx, element);
-      } catch (error) {
-        console.warn('Failed to draw element:', element.type, error);
-        // Continue drawing other elements even if one fails
-      }
-    });
+    // Draw all elements (skip broken blob URL images)
+    elements
+      .filter(element => {
+        // Skip image elements with blob URLs (not accessible from other users)
+        if (element.type === 'image' && element.imageUrl?.startsWith('blob:')) {
+          return false;
+        }
+        return true;
+      })
+      .forEach(element => {
+        try {
+          drawElement(ctx, element);
+        } catch (error) {
+          console.warn('Failed to draw element:', element.type, error);
+          // Continue drawing other elements even if one fails
+        }
+      });
 
     // Draw collaborative cursor avatars
     collaborativeUsers.forEach(user => {
