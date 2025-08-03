@@ -59,6 +59,7 @@ import { HealthModule } from './health/health.module';
     PrivateChatModule,
     WhiteboardModule,
     HealthModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
