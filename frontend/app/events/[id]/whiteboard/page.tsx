@@ -404,7 +404,12 @@ export default function EventWhiteboardPage() {
 
     newSocket.on('element-added', (element: DrawingElement) => {
       console.log('📨 Received element-added:', element.type, 'from user:', element.userName);
-      setElements(prev => [...prev, element]);
+      console.log('📊 Element details:', { id: element.id, type: element.type, x: element.x, y: element.y });
+      setElements(prev => {
+        const newElements = [...prev, element];
+        console.log('📈 Total elements after add:', newElements.length);
+        return newElements;
+      });
     });
 
     newSocket.on('element-updated', (element: DrawingElement) => {
@@ -683,40 +688,46 @@ export default function EventWhiteboardPage() {
       ctx.font = `${element.fontSize || fontSize}px Arial`;
       ctx.fillText(element.text!, element.x!, element.y!);
     } else if (element.type === 'image' && element.imageUrl) {
-      // Create and draw image with error handling
+      // Skip broken blob URLs immediately
+      if (element.imageUrl.startsWith('blob:')) {
+        console.warn('Skipping blob URL image element (not accessible from other users)');
+        return;
+      }
+
+      // For server images, draw placeholder immediately and try to load image
+      const drawPlaceholder = () => {
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(element.x!, element.y!, element.width!, element.height!);
+        ctx.fillStyle = '#f8f8f8';
+        ctx.fillRect(element.x!, element.y!, element.width!, element.height!);
+        ctx.fillStyle = '#999';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('📷 Image', element.x! + element.width! / 2, element.y! + element.height! / 2);
+      };
+
+      // Draw placeholder first
+      drawPlaceholder();
+
+      // Try to load the actual image asynchronously
       const img = new Image();
-      img.crossOrigin = 'anonymous'; // Handle CORS for server images
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
-          ctx.drawImage(img, element.x!, element.y!, element.width!, element.height!);
+          // Redraw the canvas to replace placeholder with actual image
+          setTimeout(() => redrawCanvas(), 0);
         } catch (error) {
-          console.warn('Failed to draw image element:', error);
+          console.warn('Failed to redraw after image load:', error);
         }
       };
       img.onerror = () => {
-        // Only log blob URL errors once to avoid spam
-        if (element.imageUrl?.startsWith('blob:')) {
-          console.warn('Blob URL no longer available, skipping image element');
-          return; // Don't draw anything for blob URLs
-        } else {
-          console.warn('Failed to load image:', element.imageUrl);
-        }
-
-        // Draw placeholder rectangle for non-blob URLs
-        ctx.strokeStyle = '#ccc';
-        ctx.strokeRect(element.x!, element.y!, element.width!, element.height!);
-        ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(element.x!, element.y!, element.width!, element.height!);
-        ctx.fillStyle = '#666';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Image not found', element.x! + element.width! / 2, element.y! + element.height! / 2);
+        console.warn('Failed to load image:', element.imageUrl);
+        // Placeholder is already drawn, no need to do anything
       };
 
-      // Handle both server URLs and blob URLs
-      if (element.imageUrl.startsWith('blob:')) {
-        img.src = element.imageUrl;
-      } else if (element.imageUrl.startsWith('/uploads/')) {
+      // Set image source
+      if (element.imageUrl.startsWith('/uploads/')) {
         img.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus-production.up.railway.app'}${element.imageUrl}`;
       } else {
         img.src = element.imageUrl;
@@ -756,18 +767,15 @@ export default function EventWhiteboardPage() {
       ctx.stroke();
     }
 
-    // Draw all elements (filter out broken blob URLs)
-    elements
-      .filter(element => {
-        // Skip image elements with blob URLs that no longer exist
-        if (element.type === 'image' && element.imageUrl?.startsWith('blob:')) {
-          return false;
-        }
-        return true;
-      })
-      .forEach(element => {
+    // Draw all elements (with better error handling)
+    elements.forEach(element => {
+      try {
         drawElement(ctx, element);
-      });
+      } catch (error) {
+        console.warn('Failed to draw element:', element.type, error);
+        // Continue drawing other elements even if one fails
+      }
+    });
 
     // Draw collaborative cursor avatars
     collaborativeUsers.forEach(user => {
