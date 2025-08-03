@@ -144,6 +144,7 @@ export default function EventWhiteboardPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const redrawCanvasRef = useRef<(() => void) | null>(null);
 
   // Notification debouncing
   const [notificationQueue, setNotificationQueue] = useState<{[key: string]: NodeJS.Timeout}>({});
@@ -410,6 +411,14 @@ export default function EventWhiteboardPage() {
         console.log('📈 Total elements after add:', newElements.length);
         return newElements;
       });
+
+      // Force immediate canvas redraw after receiving element
+      setTimeout(() => {
+        console.log('🔄 Forcing canvas redraw for received element');
+        if (redrawCanvasRef.current) {
+          redrawCanvasRef.current();
+        }
+      }, 50);
     });
 
     newSocket.on('element-updated', (element: DrawingElement) => {
@@ -778,10 +787,16 @@ export default function EventWhiteboardPage() {
     ctx.restore();
   }, [elements, collaborativeUsers, stageScale, stagePosition, drawElement, drawCursorAvatar]);
 
+  // Store redraw function in ref for socket handlers
+  useEffect(() => {
+    redrawCanvasRef.current = redrawCanvas;
+  }, [redrawCanvas]);
+
   // Redraw canvas when elements change
   useEffect(() => {
+    console.log('🎨 Redrawing canvas with', elements.length, 'elements');
     redrawCanvas();
-  }, [redrawCanvas]);
+  }, [redrawCanvas, elements]);
 
   // Preload avatar images when collaborative users change
   useEffect(() => {
