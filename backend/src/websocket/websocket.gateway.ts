@@ -440,6 +440,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
 
     client.join(roomId);
+    console.log(`✅ User ${data.user?.name} (${client.userId}) joined whiteboard room: ${roomId}`);
 
     // Track user rooms
     if (!this.userRooms.has(client.userId)) {
@@ -531,10 +532,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     const eventId = data.roomId.replace('event-', '');
     const roomId = `whiteboard:${eventId}`;
 
-    // Reduced logging for production
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Element added by ${client.userId} in room ${roomId}:`, data.element.type);
-    }
+    console.log(`📝 Element added by ${client.userId} in room ${roomId}:`, data.element.type, 'Broadcasting to other users...');
 
     // Add element to room state
     if (!this.whiteboardElements.has(roomId)) {
@@ -542,8 +540,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
     this.whiteboardElements.get(roomId).push(data.element);
 
-    // Broadcast to all users in the room (including sender for confirmation)
-    this.server.to(roomId).emit('element-added', data.element);
+    // Broadcast to all users in the room EXCEPT the sender (they already have it locally)
+    client.to(roomId).emit('element-added', data.element);
   }
 
   @SubscribeMessage('element-update')
@@ -566,8 +564,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       }
     }
 
-    // Broadcast to all users in the room
-    this.server.to(roomId).emit('element-updated', data.element);
+    // Broadcast to all users in the room EXCEPT the sender
+    client.to(roomId).emit('element-updated', data.element);
   }
 
   @SubscribeMessage('element-delete')
@@ -590,8 +588,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       }
     }
 
-    // Broadcast to all users in the room
-    this.server.to(roomId).emit('element-deleted', data.elementId);
+    // Broadcast to all users in the room EXCEPT the sender
+    client.to(roomId).emit('element-deleted', data.elementId);
   }
 
   @SubscribeMessage('whiteboard-clear')
@@ -611,8 +609,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     // Clear elements for this room
     this.whiteboardElements.set(roomId, []);
 
-    // Broadcast to all users in the room
-    this.server.to(roomId).emit('whiteboard-cleared');
+    // Broadcast to all users in the room EXCEPT the sender
+    client.to(roomId).emit('whiteboard-cleared');
   }
 
   // Generate consistent color for user

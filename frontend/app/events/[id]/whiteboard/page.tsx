@@ -404,14 +404,7 @@ export default function EventWhiteboardPage() {
 
     newSocket.on('element-added', (element: DrawingElement) => {
       console.log('📨 Received element-added:', element.type, 'from user:', element.userName);
-      setElements(prev => {
-        // Check if element already exists to prevent duplicates
-        if (prev.find(el => el.id === element.id)) {
-          console.log('Element already exists, skipping duplicate');
-          return prev;
-        }
-        return [...prev, element];
-      });
+      setElements(prev => [...prev, element]);
     });
 
     newSocket.on('element-updated', (element: DrawingElement) => {
