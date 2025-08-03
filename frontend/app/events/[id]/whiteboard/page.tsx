@@ -405,29 +405,23 @@ export default function EventWhiteboardPage() {
 
     newSocket.on('element-added', (element: DrawingElement) => {
       console.log('📨 Received element-added:', element.type, 'from user:', element.userName);
-      console.log('📊 Element details:', {
-        id: element.id,
-        type: element.type,
-        x: element.x,
-        y: element.y,
-        points: element.points?.length,
-        stroke: element.stroke,
-        strokeWidth: element.strokeWidth
-      });
-      console.log('🔍 Full element data:', JSON.stringify(element, null, 2));
+
+      // Simple solution: Auto-refresh page when receiving changes from other users
+      // Only refresh if the element is NOT from the current user
+      if (element.userId !== user?.id) {
+        console.log('🔄 Auto-refreshing page to show changes from other user');
+        setTimeout(() => {
+          window.location.reload();
+        }, 500); // Small delay to ensure element is saved to backend
+        return;
+      }
+
+      // For current user's own elements, add normally (no refresh needed)
       setElements(prev => {
         const newElements = [...prev, element];
         console.log('📈 Total elements after add:', newElements.length);
         return newElements;
       });
-
-      // Force immediate canvas redraw after receiving element
-      setTimeout(() => {
-        console.log('🔄 Forcing canvas redraw for received element');
-        if (redrawCanvasRef.current) {
-          redrawCanvasRef.current();
-        }
-      }, 50);
     });
 
     newSocket.on('element-updated', (element: DrawingElement) => {
@@ -660,11 +654,9 @@ export default function EventWhiteboardPage() {
 
   // Advanced HTML5 Canvas Drawing Functions
   const drawElement = useCallback((ctx: CanvasRenderingContext2D, element: DrawingElement) => {
-    console.log('🖊️ drawElement called for:', element.type, 'id:', element.id?.substring(0, 8), 'points:', element.points?.length);
     ctx.save();
 
     if (element.type === 'line' && element.points) {
-      console.log('📏 Drawing line with', element.points.length, 'points, stroke:', element.stroke, 'width:', element.strokeWidth);
       ctx.strokeStyle = element.stroke || brushColor;
       ctx.lineWidth = element.strokeWidth || brushSize;
       ctx.lineCap = 'round';
@@ -677,17 +669,13 @@ export default function EventWhiteboardPage() {
       }
 
       ctx.beginPath();
-      console.log('🎨 Drawing line with points:', element.points.length, 'loop will run:', Math.floor(element.points.length / 2), 'times');
-      for (let i = 0; i < element.points.length; i += 2) {
+      for (let i = 0; i < element.points.length - 1; i += 2) {
         if (i === 0) {
-          console.log('📍 moveTo:', element.points[i], element.points[i + 1]);
           ctx.moveTo(element.points[i], element.points[i + 1]);
         } else {
-          console.log('📏 lineTo:', element.points[i], element.points[i + 1]);
           ctx.lineTo(element.points[i], element.points[i + 1]);
         }
       }
-      console.log('✅ Calling ctx.stroke() to render line');
       ctx.stroke();
     } else if (element.type === 'rectangle') {
       ctx.strokeStyle = element.stroke || brushColor;
@@ -775,26 +763,22 @@ export default function EventWhiteboardPage() {
     }
 
     // Draw all elements (skip broken blob URL images)
-    const validElements = elements.filter(element => {
-      // Skip image elements with blob URLs (not accessible from other users)
-      if (element.type === 'image' && element.imageUrl?.startsWith('blob:')) {
-        console.log('🚫 Skipping blob URL image:', element.id);
-        return false;
-      }
-      return true;
-    });
-
-    console.log('🎨 Drawing', validElements.length, 'valid elements out of', elements.length, 'total');
-
-    validElements.forEach((element, index) => {
-      try {
-        console.log(`🖊️ Drawing element ${index + 1}:`, element.type, element.id?.substring(0, 8));
-        drawElement(ctx, element);
-      } catch (error) {
-        console.warn('❌ Failed to draw element:', element.type, element.id, error);
-        // Continue drawing other elements even if one fails
-      }
-    });
+    elements
+      .filter(element => {
+        // Skip image elements with blob URLs (not accessible from other users)
+        if (element.type === 'image' && element.imageUrl?.startsWith('blob:')) {
+          return false;
+        }
+        return true;
+      })
+      .forEach(element => {
+        try {
+          drawElement(ctx, element);
+        } catch (error) {
+          console.warn('Failed to draw element:', element.type, error);
+          // Continue drawing other elements even if one fails
+        }
+      });
 
     // Draw collaborative cursor avatars
     collaborativeUsers.forEach(user => {
