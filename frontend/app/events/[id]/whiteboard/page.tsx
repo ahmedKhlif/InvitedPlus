@@ -677,7 +677,7 @@ export default function EventWhiteboardPage() {
       }
 
       ctx.beginPath();
-      for (let i = 0; i < element.points.length - 1; i += 2) {
+      for (let i = 0; i < element.points.length; i += 2) {
         if (i === 0) {
           ctx.moveTo(element.points[i], element.points[i + 1]);
         } else {
