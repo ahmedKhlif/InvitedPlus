@@ -97,7 +97,7 @@ export default function EditEventPage() {
           status: eventData.status || 'DRAFT',
           category: eventData.category || '',
           tags: typeof eventData.tags === 'string'
-            ? eventData.tags.split(',').filter(tag => tag.trim())
+            ? eventData.tags.split(',').filter((tag: string) => tag.trim())
             : eventData.tags || [],
           images: eventData.images || [],
         });
