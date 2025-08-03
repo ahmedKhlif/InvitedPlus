@@ -83,7 +83,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onChange={(val) => onChange(markdownToHtml(val || ''))}
           preview="edit"
           hideToolbar={disabled}
-          visibleDragbar={false}
+          visibleDragBar={false}
           data-color-mode="light"
           height={parseInt(height)}
           style={{

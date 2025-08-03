@@ -43,7 +43,7 @@ export default function EditEventPage() {
     isPublic: true,
     status: 'DRAFT',
     category: '',
-    tags: [] as string[],
+    tags: '',
     images: [] as string[],
   });
   const [loading, setLoading] = useState(true);
