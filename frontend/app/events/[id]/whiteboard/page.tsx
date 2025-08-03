@@ -321,7 +321,7 @@ export default function EventWhiteboardPage() {
       setConnectionStatus('connected');
       setIsConnecting(false);
       newSocket.emit('join-whiteboard', {
-        eventId,
+        eventId: `event-${eventId}`,
         whiteboardId: currentWhiteboard?.id,
         user: currentUser
       });
@@ -958,7 +958,7 @@ export default function EventWhiteboardPage() {
     if (socket) {
       socket.emit('leave-whiteboard', currentWhiteboard?.id);
       socket.emit('join-whiteboard', {
-        eventId,
+        eventId: `event-${eventId}`,
         whiteboardId: whiteboard.id,
         user: currentUser
       });

@@ -503,9 +503,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string; position: { x: number; y: number } }
   ) {
-    // Extract eventId from roomId (handle both "event-123" and "123" formats)
-    const eventId = data.roomId.replace('event-', '');
-    const roomId = `whiteboard:${eventId}`;
+    // Use roomId directly since frontend now sends "event-123" format consistently
+    const roomId = `whiteboard:${data.roomId}`;
 
     // Update user cursor position
     const whiteboardUsers = this.whiteboardUsers.get(roomId);
@@ -528,9 +527,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string; element: any }
   ) {
-    // Extract eventId from roomId (handle both "event-123" and "123" formats)
-    const eventId = data.roomId.replace('event-', '');
-    const roomId = `whiteboard:${eventId}`;
+    // Use roomId directly since frontend now sends "event-123" format consistently
+    const roomId = `whiteboard:${data.roomId}`;
 
     console.log(`📝 Element added by ${client.userId} in room ${roomId}:`, data.element.type, 'Broadcasting to other users...');
 
@@ -549,9 +547,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string; element: any }
   ) {
-    // Extract eventId from roomId (handle both "event-123" and "123" formats)
-    const eventId = data.roomId.replace('event-', '');
-    const roomId = `whiteboard:${eventId}`;
+    // Use roomId directly since frontend now sends "event-123" format consistently
+    const roomId = `whiteboard:${data.roomId}`;
 
     console.log(`Element updated by ${client.userId} in room ${roomId}`);
 
@@ -573,9 +570,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string; elementId: string }
   ) {
-    // Extract eventId from roomId (handle both "event-123" and "123" formats)
-    const eventId = data.roomId.replace('event-', '');
-    const roomId = `whiteboard:${eventId}`;
+    // Use roomId directly since frontend now sends "event-123" format consistently
+    const roomId = `whiteboard:${data.roomId}`;
 
     console.log(`Element deleted by ${client.userId} in room ${roomId}`);
 
@@ -597,9 +593,8 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string }
   ) {
-    // Extract eventId from roomId (handle both "event-123" and "123" formats)
-    const eventId = data.roomId.replace('event-', '');
-    const roomId = `whiteboard:${eventId}`;
+    // Use roomId directly since frontend now sends "event-123" format consistently
+    const roomId = `whiteboard:${data.roomId}`;
 
     // Reduced logging for production
     if (process.env.NODE_ENV !== 'production') {
