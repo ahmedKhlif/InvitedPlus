@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Force production API URL for now
-const API_BASE_URL = 'https://invitedplus-production.up.railway.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api';
 
 console.log('API_BASE_URL:', API_BASE_URL);
 

@@ -4,7 +4,7 @@
 
 // Get the backend base URL from environment variables
 const getBackendBaseUrl = (): string => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api';
   return apiUrl.replace('/api', '');
 };
 
@@ -53,7 +53,7 @@ export const getFullMediaUrl = (mediaUrl: string): string => {
  * @returns API base URL
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api';
 };
 
 /**
