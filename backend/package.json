@@ -4,7 +4,7 @@
   "description": "Backend API for Invited+ Event Management Platform",
   "main": "dist/main.js",
   "scripts": {
-    "build": "npx nest build",
+    "build": "npx prisma generate && npx nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
     "start:dev": "npx nest start --watch",
@@ -69,7 +69,6 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.7",
     "@nestjs/testing": "^11.1.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
