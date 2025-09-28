@@ -124,7 +124,7 @@ function LoginForm() {
               <Button
                 variant="outline"
                 fullWidth
-                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api'}/auth/google`}
+                onClick={() => window.location.href = 'https://invitedplus.onrender.com/api/auth/google'}
                 className="h-12 justify-center"
                 leftIcon={
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@ function LoginForm() {
               <Button
                 variant="outline"
                 fullWidth
-                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api'}/auth/github`}
+                onClick={() => window.location.href = 'https://invitedplus.onrender.com/api/auth/github'}
                 className="h-12 justify-center"
                 leftIcon={
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

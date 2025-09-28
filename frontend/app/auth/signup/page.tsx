@@ -184,7 +184,10 @@ export default function SignupPage() {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api'}/auth/google`}
+              onClick={() => {
+                console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+                window.location.href = 'https://invitedplus.onrender.com/api/auth/google';
+              }}
               className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
@@ -198,7 +201,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com/api'}/auth/github`}
+              onClick={() => window.location.href = 'https://invitedplus.onrender.com/api/auth/github'}
               className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
