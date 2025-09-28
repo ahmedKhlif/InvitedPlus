@@ -10,10 +10,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
+    const apiUrl = configService.get<string>('API_URL', 'https://invitedplus.onrender.com');
+    const callbackURL = `${apiUrl}/api/auth/google/callback`;
+    
+    console.log('Google OAuth Config:', {
+      clientID: configService.get<string>('GOOGLE_CLIENT_ID') ? 'SET' : 'NOT SET',
+      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') ? 'SET' : 'NOT SET',
+      apiUrl,
+      callbackURL
+    });
+
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: `${configService.get<string>('API_URL')}/api/auth/google/callback`,
+      callbackURL,
       scope: ['email', 'profile'],
     });
   }
