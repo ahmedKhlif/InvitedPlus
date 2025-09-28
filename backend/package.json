@@ -32,6 +32,7 @@
   "author": "Invited+ Team",
   "license": "MIT",
   "dependencies": {
+    "@nestjs/cli": "^11.0.7",
     "@nestjs/common": "^11.1.4",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.4",
@@ -64,6 +65,7 @@
     "rxjs": "^7.8.2",
     "sharp": "^0.34.3",
     "socket.io": "^4.8.1",
+    "typescript": "^5.8.3",
     "winston": "^3.17.0"
   },
   "devDependencies": {

@@ -72,7 +72,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.BACKEND_PORT || 3001;
+  const port = process.env.PORT || process.env.BACKEND_PORT || 3001;
   await app.listen(port);
 
   // Note: Socket.IO server is now handled by the WebSocket Gateway
@@ -80,8 +80,8 @@ async function bootstrap() {
 
   // Reduced logging for production to prevent rate limits
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`🚀 Application is running on: https://invitedplus-production.up.railway.app`);
-    console.log(`📚 API Documentation: https://invitedplus-production.up.railway.app/api/docs`);
+    console.log(`🚀 Application is running on: http://localhost:${port}`);
+    console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
     console.log(`🔗 Socket.IO server initialized for real-time collaboration`);
   }
 }
