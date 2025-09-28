@@ -61,7 +61,7 @@ export default function AdminEditEventPage() {
           return;
         }
 
-        const response = await fetch(`https://invitedplus-production.up.railway.app/api/events/${eventId}`, {
+        const response = await fetch(`https://invitedplus.onrender.com/api/events/${eventId}`, {
           headers: {
             'Authorization': `Bearer ${authService.getToken()}`,
             'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ export default function AdminEditEventPage() {
         maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
       };
 
-      const response = await fetch(`https://invitedplus-production.up.railway.app/api/events/${eventId}`, {
+      const response = await fetch(`https://invitedplus.onrender.com/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,

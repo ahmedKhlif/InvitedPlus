@@ -202,7 +202,7 @@ export function useSocket(eventId?: string) {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://invitedplus-production.up.railway.app', {
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://invitedplus.onrender.com', {
       auth: { token: localStorage.getItem('token') }
     });
 

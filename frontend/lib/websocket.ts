@@ -20,7 +20,7 @@ class WebSocketService {
         return;
       }
 
-      this.socket = io(process.env.NEXT_PUBLIC_WS_URL || 'https://invitedplus-production.up.railway.app', {
+      this.socket = io(process.env.NEXT_PUBLIC_WS_URL || 'https://invitedplus.onrender.com', {
         auth: {
           token: token
         },

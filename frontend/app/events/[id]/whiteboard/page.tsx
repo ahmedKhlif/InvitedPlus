@@ -170,7 +170,7 @@ export default function EventWhiteboardPage() {
       img.onerror = () => {
         reject(new Error('Failed to load avatar image'));
       };
-      img.src = avatarUrl.startsWith('http') ? avatarUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus-production.up.railway.app'}${avatarUrl}`;
+      img.src = avatarUrl.startsWith('http') ? avatarUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus.onrender.com'}${avatarUrl}`;
     });
   }, [avatarImageCache]);
 
@@ -271,7 +271,7 @@ export default function EventWhiteboardPage() {
         return null;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app'}/api/auth/refresh`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com'}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,7 +310,7 @@ export default function EventWhiteboardPage() {
       return;
     }
 
-    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus-production.up.railway.app', {
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'https://invitedplus.onrender.com', {
       transports: ['websocket', 'polling'],
       auth: {
         token: token
@@ -729,7 +729,7 @@ export default function EventWhiteboardPage() {
 
       // Set image source
       if (element.imageUrl.startsWith('/uploads/')) {
-        img.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus-production.up.railway.app'}${element.imageUrl}`;
+        img.src = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://invitedplus.onrender.com'}${element.imageUrl}`;
       } else {
         img.src = element.imageUrl;
       }
@@ -1303,7 +1303,7 @@ export default function EventWhiteboardPage() {
                   >
                     {user.avatar ? (
                       <img
-                        src={`https://invitedplus-production.up.railway.app${user.avatar}`}
+                        src={`https://invitedplus.onrender.com${user.avatar}`}
                         alt={user.name}
                         className="w-8 h-8 rounded-full object-cover border-2"
                         style={{ borderColor: user.color }}
@@ -1657,7 +1657,7 @@ export default function EventWhiteboardPage() {
                       <div className="relative w-10 h-10">
                         {currentUser?.avatar ? (
                           <img
-                            src={`https://invitedplus-production.up.railway.app${currentUser.avatar}`}
+                            src={`https://invitedplus.onrender.com${currentUser.avatar}`}
                             alt={currentUser.name}
                             className="w-10 h-10 rounded-full object-cover border-2 border-white border-opacity-30"
                           />
@@ -1692,7 +1692,7 @@ export default function EventWhiteboardPage() {
                         <div className="relative w-10 h-10">
                           {user.avatar ? (
                             <img
-                              src={`https://invitedplus-production.up.railway.app${user.avatar}`}
+                              src={`https://invitedplus.onrender.com${user.avatar}`}
                               alt={user.name}
                               className="w-10 h-10 rounded-full object-cover border-2"
                               style={{ borderColor: user.color }}
